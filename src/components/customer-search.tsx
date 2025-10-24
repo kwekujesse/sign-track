@@ -36,7 +36,7 @@ export function CustomerSearch() {
         <CardHeader>
           <CardTitle className="text-2xl font-bold tracking-tight text-center">Find Your Order</CardTitle>
           <CardDescription className="text-center">
-            Enter your name to find your order and complete pickup.
+            Enter your first or last name to find your order.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -52,7 +52,7 @@ export function CustomerSearch() {
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                         <Input
-                          placeholder="Enter your full name..."
+                          placeholder="Enter your first or last name..."
                           className="pl-10 h-12 text-lg"
                           {...field}
                         />

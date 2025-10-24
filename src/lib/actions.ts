@@ -7,15 +7,17 @@ import { redirect } from "next/navigation";
 import { addOrder, findOrdersByName, addSignatureToOrder as dbAddSignature } from "@/lib/data";
 
 const orderSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
   orderNumber: z.string().min(1, "Order number is required"),
-  customerName: z.string().min(1, "Customer name is required"),
   binNumber: z.string().min(1, "Bin number is required"),
 });
 
 export async function createOrder(prevState: any, formData: FormData) {
   const validatedFields = orderSchema.safeParse({
+    firstName: formData.get("firstName"),
+    lastName: formData.get("lastName"),
     orderNumber: formData.get("orderNumber"),
-    customerName: formData.get("customerName"),
     binNumber: formData.get("binNumber"),
   });
 

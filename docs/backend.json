@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Order": {
@@ -14,9 +15,17 @@
           "type": "string",
           "description": "The order number, typically obtained by scanning a barcode."
         },
+        "firstName": {
+          "type": "string",
+          "description": "The first name of the customer associated with the order."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The last name of the customer associated with the order."
+        },
         "customerName": {
           "type": "string",
-          "description": "The name of the customer associated with the order."
+          "description": "The full name of the customer, combined for search and display purposes."
         },
         "binNumber": {
           "type": "string",
@@ -39,6 +48,8 @@
       "required": [
         "id",
         "orderNumber",
+        "firstName",
+        "lastName",
         "customerName",
         "binNumber",
         "pickupStatus"

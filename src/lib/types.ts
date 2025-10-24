@@ -1,7 +1,9 @@
 export interface Order {
   id: string;
   orderNumber: string;
-  customerName: string;
+  firstName: string;
+  lastName: string;
+  customerName: string; // Combined for search and display
   binNumber: string;
   status: "Awaiting Pickup" | "Picked Up";
   createdAt: string;

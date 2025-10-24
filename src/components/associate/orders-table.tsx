@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from "next/image";
@@ -17,24 +18,28 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { Skeleton } from "@/components/ui/skeleton";
 
 
 export function OrdersTable({ orders, isLoading }: { orders: Order[], isLoading?: boolean }) {
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "N/A";
+  const formatDate = (dateInput?: string | Date) => {
+    if (!dateInput) return "N/A";
+    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+    if (!isValid(date)) return "Invalid Date";
     try {
-        return format(new Date(dateString), "MMM d, yyyy 'at' h:mm a");
+        return format(date, "MMM d, yyyy 'at' h:mm a");
     } catch (error) {
         return "Invalid Date";
     }
   }
 
-  const formatShortDate = (dateString?: string) => {
-      if (!dateString) return "N/A";
+  const formatShortDate = (dateInput?: string | Date) => {
+      if (!dateInput) return "N/A";
+      const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+      if (!isValid(date)) return "Invalid Date";
       try {
-          return format(new Date(dateString), "MMM d, yyyy");
+          return format(date, "MMM d, yyyy");
       } catch (error) {
           return "Invalid Date";
       }

@@ -25,7 +25,8 @@ import { FirestorePermissionError } from "@/firebase/errors";
 
 const orderSchema = z.object({
   orderNumber: z.string().min(1, "Order number is required"),
-  customerName: z.string().min(1, "Customer name is required"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
   binNumber: z.string().min(1, "Bin number is required"),
 });
 
@@ -44,7 +45,8 @@ export function OrderEntryForm({
     resolver: zodResolver(orderSchema),
     defaultValues: {
       orderNumber: "",
-      customerName: "",
+      firstName: "",
+      lastName: "",
       binNumber: "",
     },
   });
@@ -62,6 +64,7 @@ export function OrderEntryForm({
     setIsSubmitting(true);
     const newOrderData = {
       ...data,
+      customerName: `${data.firstName} ${data.lastName}`, // Combined for easy search/display
       status: "Awaiting Pickup",
       createdAt: Timestamp.now(),
     };
@@ -116,22 +119,37 @@ export function OrderEntryForm({
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name="customerName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Customer Name</FormLabel>
-              <FormControl>
-                <div className="relative">
-                  <User className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="John Doe" className="pl-9" {...field} />
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="firstName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>First Name</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <User className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input placeholder="John" className="pl-9" {...field} />
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="lastName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Last Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Doe" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
         <FormField
           control={form.control}
           name="binNumber"
