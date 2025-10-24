@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
-import { Package, Users } from "lucide-react";
+import { Package, Home } from "lucide-react";
 
-export function MainNav() {
+export function AssociateNav() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
@@ -18,9 +18,9 @@ export function MainNav() {
         <div className="flex flex-1 items-center justify-end space-x-2">
           <nav className="flex items-center">
             <Button variant="ghost" asChild>
-              <Link href="/associate">
-                <Users className="mr-2 h-4 w-4" />
-                Associate View
+              <Link href="/">
+                <Home className="mr-2 h-4 w-4" />
+                Customer View
               </Link>
             </Button>
           </nav>

@@ -1,4 +1,4 @@
-import { MainNav } from "@/components/main-nav";
+import { AssociateNav } from "@/components/associate-nav";
 import { AccessGate } from "@/components/associate/access-gate";
 
 export default function AssociateLayout({
@@ -8,7 +8,7 @@ export default function AssociateLayout({
 }) {
   return (
     <div className="flex min-h-screen w-full flex-col">
-      <MainNav />
+      <AssociateNav />
       <main className="flex-1 bg-muted/20">
         <AccessGate>{children}</AccessGate>
       </main>
