@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, {
@@ -5,6 +6,7 @@ import React, {
   useEffect,
   useImperativeHandle,
   forwardRef,
+  useState,
 } from "react";
 import { cn } from "@/lib/utils";
 
@@ -20,19 +22,31 @@ const SignaturePad = forwardRef<
 >((props, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const isDrawing = useRef(false);
-  const lastX = useRef(0);
-  const lastY = useRef(0);
+  
+  // By using state for last coordinates, we can ensure re-renders if needed.
+  const [lastPosition, setLastPosition] = useState({ x: 0, y: 0 });
 
   const getContext = () => {
     return canvasRef.current?.getContext("2d");
   };
-
+  
   const setCanvasSize = () => {
     const canvas = canvasRef.current;
     if (canvas) {
       const { width, height } = canvas.getBoundingClientRect();
+      const context = getContext();
+      const imageData = context?.getImageData(0,0, canvas.width, canvas.height);
+
       canvas.width = width;
       canvas.height = height;
+
+      if(context && imageData) {
+        context.putImageData(imageData, 0, 0);
+        context.lineCap = "round";
+        context.lineJoin = "round";
+        context.lineWidth = 3;
+        context.strokeStyle = "#000";
+      }
     }
   };
 
@@ -40,50 +54,50 @@ const SignaturePad = forwardRef<
     setCanvasSize();
     window.addEventListener("resize", setCanvasSize);
 
+    return () => {
+      window.removeEventListener("resize", setCanvasSize);
+    };
+  }, []);
+  
+  useEffect(() => {
     const context = getContext();
-    if (context) {
+    if(context) {
       context.lineCap = "round";
       context.lineJoin = "round";
       context.lineWidth = 3;
       context.strokeStyle = "#000";
     }
-
-    return () => {
-      window.removeEventListener("resize", setCanvasSize);
-    };
   }, []);
 
   const getCoords = (e: MouseEvent | TouchEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
     const rect = canvas.getBoundingClientRect();
-    if (e instanceof MouseEvent) {
-      return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    }
-    if (e.touches[0]) {
-      return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
-    }
-    return { x: 0, y: 0 };
+    const event = 'touches' in e ? e.touches[0] : e;
+    return {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    };
   };
 
-  const startDrawing = (e: MouseEvent | TouchEvent) => {
+  const startDrawing = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
+    const { x, y } = getCoords(e.nativeEvent);
     isDrawing.current = true;
-    const { x, y } = getCoords(e);
-    [lastX.current, lastY.current] = [x, y];
+    setLastPosition({ x, y });
   };
 
-  const draw = (e: MouseEvent | TouchEvent) => {
+  const draw = (e: React.MouseEvent | React.TouchEvent) => {
     if (!isDrawing.current) return;
     e.preventDefault();
     const context = getContext();
     if (context) {
-      const { x, y } = getCoords(e);
+      const { x, y } = getCoords(e.nativeEvent);
       context.beginPath();
-      context.moveTo(lastX.current, lastY.current);
+      context.moveTo(lastPosition.x, lastPosition.y);
       context.lineTo(x, y);
       context.stroke();
-      [lastX.current, lastY.current] = [x, y];
+      setLastPosition({ x, y });
     }
   };
 
@@ -91,13 +105,17 @@ const SignaturePad = forwardRef<
     isDrawing.current = false;
   };
 
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    const context = getContext();
+    if (canvas && context) {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+
   useImperativeHandle(ref, () => ({
     clear: () => {
-      const canvas = canvasRef.current;
-      const context = getContext();
-      if (canvas && context) {
-        context.clearRect(0, 0, canvas.width, canvas.height);
-      }
+      clearCanvas();
     },
     toDataURL: () => {
       return canvasRef.current?.toDataURL("image/png") || "";
@@ -108,7 +126,6 @@ const SignaturePad = forwardRef<
       const context = getContext();
       if (!context) return true;
 
-      // Check if the canvas is blank
       const pixelBuffer = new Uint32Array(
         context.getImageData(0, 0, canvas.width, canvas.height).data.buffer
       );
