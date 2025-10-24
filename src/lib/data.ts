@@ -8,6 +8,7 @@ import {
   getDoc,
   getDocs,
   updateDoc,
+  deleteDoc,
   query,
   where,
   orderBy,
@@ -65,8 +66,7 @@ export const findOrdersByName = async (name: string): Promise<Order[]> => {
     const q = query(ordersCol, 
       or(
         where('firstName_lowercase', '==', nameLower),
-        where('lastName_lowercase', '==', nameLower),
-        where('customerName_lowercase', '==', nameLower)
+        where('lastName_lowercase', '==', nameLower)
       )
     );
 
@@ -122,4 +122,22 @@ export const addSignatureToOrder = async (
     return toOrder(updatedDoc);
   }
   return undefined;
+};
+
+export const updateOrder = async (id: string, data: Partial<Omit<Order, 'id'>>) => {
+  const db = getDb();
+  const orderRef = doc(db, 'orders', id);
+  await updateDoc(orderRef, {
+    ...data,
+    customerName: `${data.firstName} ${data.lastName}`,
+    firstName_lowercase: data.firstName?.toLowerCase(),
+    lastName_lowercase: data.lastName?.toLowerCase(),
+    customerName_lowercase: `${data.firstName} ${data.lastName}`.toLowerCase(),
+  });
+};
+
+export const deleteOrder = async (id: string) => {
+  const db = getDb();
+  const orderRef = doc(db, 'orders', id);
+  await deleteDoc(orderRef);
 };

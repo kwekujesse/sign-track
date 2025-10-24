@@ -19,9 +19,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { useFirebase } from "@/firebase";
-import { collection, addDoc, Timestamp } from "firebase/firestore";
+import { collection, addDoc, doc, updateDoc, Timestamp } from "firebase/firestore";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
+import { Order } from "@/lib/types";
 
 const orderSchema = z.object({
   orderNumber: z.string().min(1, "Order number is required"),
@@ -34,8 +35,10 @@ type OrderFormValues = z.infer<typeof orderSchema>;
 
 export function OrderEntryForm({
   setDialogOpen,
+  orderToEdit,
 }: {
   setDialogOpen: (isOpen: boolean) => void;
+  orderToEdit?: Order;
 }) {
   const { toast } = useToast();
   const { firestore } = useFirebase();
@@ -43,13 +46,24 @@ export function OrderEntryForm({
 
   const form = useForm<OrderFormValues>({
     resolver: zodResolver(orderSchema),
-    defaultValues: {
+    defaultValues: orderToEdit ? {
+        orderNumber: orderToEdit.orderNumber,
+        firstName: orderToEdit.firstName,
+        lastName: orderToEdit.lastName,
+        binNumber: orderToEdit.binNumber,
+    } : {
       orderNumber: "",
       firstName: "",
       lastName: "",
       binNumber: "",
     },
   });
+  
+  useEffect(() => {
+    if (orderToEdit) {
+      form.reset(orderToEdit);
+    }
+  }, [orderToEdit, form]);
 
   const onSubmit = async (data: OrderFormValues) => {
     if (!firestore) {
@@ -62,45 +76,86 @@ export function OrderEntryForm({
     }
 
     setIsSubmitting(true);
-    const newOrderData = {
-      ...data,
-      customerName: `${data.firstName} ${data.lastName}`,
-      firstName_lowercase: data.firstName.toLowerCase(),
-      lastName_lowercase: data.lastName.toLowerCase(),
-      customerName_lowercase: `${data.firstName} ${data.lastName}`.toLowerCase(),
-      status: "Awaiting Pickup",
-      createdAt: Timestamp.now(),
-    };
-    
-    const ordersCollection = collection(firestore, "orders");
 
-    addDoc(ordersCollection, newOrderData)
-      .then(() => {
-        toast({
-          title: "Success!",
-          description: "Order created successfully.",
-          className: "bg-accent text-accent-foreground",
-        });
-        setDialogOpen(false);
-        form.reset();
-      })
-      .catch((serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: ordersCollection.path,
-          operation: 'create',
-          requestResourceData: newOrderData,
-        });
-        errorEmitter.emit('permission-error', permissionError);
+    if (orderToEdit) {
+        // Update existing order
+        const orderRef = doc(firestore, "orders", orderToEdit.id);
+        const updatedData = {
+          ...data,
+          customerName: `${data.firstName} ${data.lastName}`,
+          firstName_lowercase: data.firstName.toLowerCase(),
+          lastName_lowercase: data.lastName.toLowerCase(),
+          customerName_lowercase: `${data.firstName} ${data.lastName}`.toLowerCase(),
+        };
 
-        toast({
-          title: "Error",
-          description: "Failed to create order due to a permission issue.",
-          variant: "destructive",
-        });
-      })
-      .finally(() => {
-        setIsSubmitting(false);
-      });
+        updateDoc(orderRef, updatedData)
+        .then(() => {
+            toast({
+              title: "Success!",
+              description: "Order updated successfully.",
+              className: "bg-accent text-accent-foreground",
+            });
+            setDialogOpen(false);
+          })
+          .catch((serverError) => {
+            const permissionError = new FirestorePermissionError({
+              path: orderRef.path,
+              operation: 'update',
+              requestResourceData: updatedData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            toast({
+              title: "Error",
+              description: "Failed to update order due to a permission issue.",
+              variant: "destructive",
+            });
+          })
+          .finally(() => {
+            setIsSubmitting(false);
+          });
+
+    } else {
+        // Create new order
+        const newOrderData = {
+          ...data,
+          customerName: `${data.firstName} ${data.lastName}`,
+          firstName_lowercase: data.firstName.toLowerCase(),
+          lastName_lowercase: data.lastName.toLowerCase(),
+          customerName_lowercase: `${data.firstName} ${data.lastName}`.toLowerCase(),
+          status: "Awaiting Pickup",
+          createdAt: Timestamp.now(),
+        };
+        
+        const ordersCollection = collection(firestore, "orders");
+
+        addDoc(ordersCollection, newOrderData)
+          .then(() => {
+            toast({
+              title: "Success!",
+              description: "Order created successfully.",
+              className: "bg-accent text-accent-foreground",
+            });
+            setDialogOpen(false);
+            form.reset();
+          })
+          .catch((serverError) => {
+            const permissionError = new FirestorePermissionError({
+              path: ordersCollection.path,
+              operation: 'create',
+              requestResourceData: newOrderData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+
+            toast({
+              title: "Error",
+              description: "Failed to create order due to a permission issue.",
+              variant: "destructive",
+            });
+          })
+          .finally(() => {
+            setIsSubmitting(false);
+          });
+    }
   };
 
   return (
@@ -163,14 +218,14 @@ export function OrderEntryForm({
                 <div className="relative">
                   <Archive className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input placeholder="A12" className="pl-9" {...field} />
--                </div>
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
         <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? <Loader2 className="animate-spin" /> : 'Save Order'}
+          {isSubmitting ? <Loader2 className="animate-spin" /> : orderToEdit ? 'Save Changes' : 'Save Order'}
         </Button>
       </form>
     </Form>

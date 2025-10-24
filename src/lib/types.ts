@@ -9,4 +9,9 @@ export interface Order {
   createdAt: string;
   pickedUpAt?: string;
   signature?: string; // base64 data URL
+
+  // Fields for case-insensitive search
+  firstName_lowercase?: string;
+  lastName_lowercase?: string;
+  customerName_lowercase?: string;
 }
