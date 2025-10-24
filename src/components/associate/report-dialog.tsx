@@ -14,15 +14,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Printer } from "lucide-react";
+import { Printer, FileText } from "lucide-react";
 import { ReportView } from "./report-view";
 
 interface ReportDialogProps {
-  children: React.ReactNode;
   orders: Order[];
 }
 
-export const ReportDialog = React.forwardRef<HTMLButtonElement, ReportDialogProps>(({ children, orders }, ref) => {
+export function ReportDialog({ orders }: ReportDialogProps) {
   const componentRef = useRef<HTMLDivElement>(null);
   
   const handlePrint = useReactToPrint({
@@ -33,7 +32,10 @@ export const ReportDialog = React.forwardRef<HTMLButtonElement, ReportDialogProp
   return (
     <Dialog>
       <DialogTrigger asChild>
-        {React.cloneElement(children as React.ReactElement, { ref })}
+        <Button variant="outline">
+          <FileText className="mr-2 h-4 w-4" />
+          Print EOD Report
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-w-4xl">
         <DialogHeader>
@@ -56,6 +58,4 @@ export const ReportDialog = React.forwardRef<HTMLButtonElement, ReportDialogProp
       </DialogContent>
     </Dialog>
   );
-});
-
-ReportDialog.displayName = "ReportDialog";
+}

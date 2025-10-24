@@ -58,11 +58,15 @@ export function DashboardClient({ orders: initialOrders }: { orders: Order[] }) 
 
       const todayPickups = pickedUp.filter(order => {
         if (!order.pickedUpAt) return false;
+        
+        // Ensure pickedUpAt can be converted to a Date object
         const pickedUpAtDate = order.pickedUpAt instanceof Timestamp 
             ? order.pickedUpAt.toDate() 
             : new Date(order.pickedUpAt);
             
+        // Check if the conversion resulted in a valid date
         if (isNaN(pickedUpAtDate.getTime())) {
+          console.warn("Invalid pickedUpAt value for order:", order.id, order.pickedUpAt);
           return false; 
         }
 
@@ -104,12 +108,7 @@ export function DashboardClient({ orders: initialOrders }: { orders: Order[] }) 
               <OrderEntryForm setDialogOpen={setIsNewOrderDialogOpen} />
             </DialogContent>
           </Dialog>
-          <ReportDialog orders={pickedUpToday}>
-             <Button variant="outline">
-                <FileText className="mr-2 h-4 w-4" />
-                Print EOD Report
-              </Button>
-          </ReportDialog>
+          <ReportDialog orders={pickedUpToday} />
         </div>
       </div>
 
