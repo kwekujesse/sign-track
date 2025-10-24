@@ -45,7 +45,7 @@ export async function searchOrders(prevState: any, formData: FormData) {
     return { orders: [], message: "Please enter at least 2 characters." };
   }
   try {
-    const orders = await findOrdersByName(name);
+    const orders = await findOrdersByName(name.toLowerCase());
     const pendingOrders = orders.filter(order => order.status === "Awaiting Pickup");
 
     if (pendingOrders.length === 0) {
