@@ -29,10 +29,11 @@ export async function createOrder(prevState: any, formData: FormData) {
   try {
     await addOrder(validatedFields.data);
     // Revalidation is handled by the real-time listener on the dashboard
-    // revalidatePath("/associate"); 
     return { message: "Order created successfully." };
-  } catch (e) {
-    return { message: "Failed to create order." };
+  } catch (e: any) {
+    // This is a server action, so we can't use the client-side error emitter.
+    // We return the error message to be displayed in the UI.
+    return { message: e.message || "Failed to create order." };
   }
 }
 
@@ -62,12 +63,10 @@ export async function addSignature(orderId: string, signature: string) {
 
     try {
         await dbAddSignature(orderId, signature);
-        // Revalidation is handled by real-time listeners
-        // revalidatePath(`/order/${orderId}`);
-        // revalidatePath('/associate');
-        // revalidatePath('/');
-    } catch (error) {
+        // Revalidation is handled by real-time listeners, but we can still revalidate server-rendered pages if needed
+    } catch (error: any) {
         console.error("Failed to add signature:", error);
-        throw new Error("Failed to save signature.");
+        // Re-throw with a more specific message if possible, or just re-throw.
+        throw new Error(error.message || "Failed to save signature.");
     }
 }

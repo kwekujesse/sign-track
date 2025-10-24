@@ -1,11 +1,11 @@
+
 "use client";
 
-import { useEffect, useActionState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Barcode, User, Archive } from "lucide-react";
-import { createOrder } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import {
   Form,
@@ -16,7 +16,12 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { SubmitButton } from "../submit-button";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
+import { useFirebase } from "@/firebase";
+import { collection, addDoc, Timestamp } from "firebase/firestore";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 const orderSchema = z.object({
   orderNumber: z.string().min(1, "Order number is required"),
@@ -24,20 +29,18 @@ const orderSchema = z.object({
   binNumber: z.string().min(1, "Bin number is required"),
 });
 
-const initialState = {
-  message: "",
-  errors: {},
-};
+type OrderFormValues = z.infer<typeof orderSchema>;
 
 export function OrderEntryForm({
   setDialogOpen,
 }: {
   setDialogOpen: (isOpen: boolean) => void;
 }) {
-  const [state, formAction] = useActionState(createOrder, initialState);
   const { toast } = useToast();
+  const { firestore } = useFirebase();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<z.infer<typeof orderSchema>>({
+  const form = useForm<OrderFormValues>({
     resolver: zodResolver(orderSchema),
     defaultValues: {
       orderNumber: "",
@@ -46,27 +49,57 @@ export function OrderEntryForm({
     },
   });
 
-  useEffect(() => {
-    if (state.message === "Order created successfully.") {
-      toast({
-        title: "Success!",
-        description: state.message,
-        className: "bg-accent text-accent-foreground",
-      });
-      setDialogOpen(false);
-      form.reset();
-    } else if (state.message && state.message !== "Validation Error.") {
+  const onSubmit = async (data: OrderFormValues) => {
+    if (!firestore) {
       toast({
         title: "Error",
-        description: state.message,
+        description: "Database not available. Please try again later.",
         variant: "destructive",
       });
+      return;
     }
-  }, [state, toast, setDialogOpen, form]);
+
+    setIsSubmitting(true);
+    const newOrderData = {
+      ...data,
+      status: "Awaiting Pickup",
+      createdAt: Timestamp.now(),
+    };
+    
+    const ordersCollection = collection(firestore, "orders");
+
+    addDoc(ordersCollection, newOrderData)
+      .then(() => {
+        toast({
+          title: "Success!",
+          description: "Order created successfully.",
+          className: "bg-accent text-accent-foreground",
+        });
+        setDialogOpen(false);
+        form.reset();
+      })
+      .catch((serverError) => {
+        const permissionError = new FirestorePermissionError({
+          path: ordersCollection.path,
+          operation: 'create',
+          requestResourceData: newOrderData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+
+        toast({
+          title: "Error",
+          description: "Failed to create order due to a permission issue.",
+          variant: "destructive",
+        });
+      })
+      .finally(() => {
+        setIsSubmitting(false);
+      });
+  };
 
   return (
     <Form {...form}>
-      <form action={formAction} className="grid gap-4 py-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4 py-4">
         <FormField
           control={form.control}
           name="orderNumber"
@@ -115,7 +148,9 @@ export function OrderEntryForm({
             </FormItem>
           )}
         />
-        <SubmitButton>Save Order</SubmitButton>
+        <Button type="submit" disabled={isSubmitting}>
+          {isSubmitting ? <Loader2 className="animate-spin" /> : 'Save Order'}
+        </Button>
       </form>
     </Form>
   );
