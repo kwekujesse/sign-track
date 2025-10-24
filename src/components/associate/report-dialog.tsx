@@ -31,7 +31,7 @@ export function ReportDialog({ orders }: ReportDialogProps) {
 
   return (
     <Dialog>
-      <DialogTrigger>
+      <DialogTrigger asChild>
         <Button variant="outline">
           <FileText className="mr-2 h-4 w-4" />
           Print EOD Report
