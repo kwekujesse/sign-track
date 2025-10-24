@@ -8,8 +8,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { BarcodeScanner } from "react-zxing";
-import { useState, useRef, useEffect } from "react";
+import { BarcodeScanner } from "@/components/barcode-scanner";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -30,7 +30,7 @@ export function BarcodeScannerDialog({
 
   const handleScan = (result: any) => {
     if (result) {
-      onScan(result.getText());
+      onScan(result);
       onClose();
     }
   };
@@ -75,7 +75,7 @@ export function BarcodeScannerDialog({
             </div>
           ) : hasCameraPermission === true ? (
              <BarcodeScanner
-                onResult={handleScan}
+                onScan={handleScan}
                 onError={handleError}
              />
           ) : (
