@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Lock, Users } from 'lucide-react';
+import { Lock, Users, Mail } from 'lucide-react';
 import { useUser, useFirebase } from '@/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
@@ -14,9 +14,9 @@ import { useToast } from '@/hooks/use-toast';
 export function AccessGate({ children }: { children: React.ReactNode }) {
   const { auth } = useFirebase();
   const { user, isUserLoading } = useUser();
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const email = "associate@signtrack.com";
   const { toast } = useToast();
 
 
@@ -27,16 +27,14 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
     }
     setError('');
     try {
-      // The associate user was created with email 'associate@signtrack.com' and password 'password'
-      // We sign in with those credentials if the user enters 'admin'
       await signInWithEmailAndPassword(auth, email, password);
     } catch (e: any) {
       console.error(e);
       if (e.code === 'auth/invalid-credential' || e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password') {
-         setError('Authentication failed. Please check the password and try again.');
+         setError('Authentication failed. Please check your credentials and try again.');
          toast({
             title: "Login Failed",
-            description: "Invalid credentials provided for associate account.",
+            description: "Invalid email or password provided.",
             variant: "destructive",
          })
       } else {
@@ -67,10 +65,20 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
                 <Users className="h-8 w-8"/>
             </div>
           <CardTitle>Associate Dashboard</CardTitle>
-          <CardDescription>Enter the password to access the associate-only area.</CardDescription>
+          <CardDescription>Enter your credentials to access the associate-only area.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
+            <div className="relative">
+              <Mail className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="pl-9"
+              />
+            </div>
              <div className="relative">
               <Lock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
