@@ -49,7 +49,7 @@ export async function searchOrders(prevState: any, formData: FormData) {
     const pendingOrders = orders.filter(order => order.status === "Awaiting Pickup");
 
     if (pendingOrders.length === 0) {
-      return { orders: [], message: "No pending orders found for this name." };
+      return { orders: [], message: "No pending orders found for this name. Please see an associate for help" };
     }
     return { orders: pendingOrders, message: "" };
   } catch (e) {
