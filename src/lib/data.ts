@@ -53,8 +53,7 @@ export const findOrdersByName = async (name: string): Promise<Order[]> => {
   if (!name) return [];
   return orders.filter(
     (order) =>
-      order.customerName.toLowerCase().includes(name.toLowerCase()) &&
-      order.status === "Awaiting Pickup"
+      order.customerName.toLowerCase().includes(name.toLowerCase())
   );
 };
 

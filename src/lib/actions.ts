@@ -42,10 +42,12 @@ export async function searchOrders(prevState: any, formData: FormData) {
   }
   try {
     const orders = await findOrdersByName(name);
-    if (orders.length === 0) {
-      return { orders: [], message: "No orders found for this name." };
+    const pendingOrders = orders.filter(order => order.status === "Awaiting Pickup");
+
+    if (pendingOrders.length === 0) {
+      return { orders: [], message: "No pending orders found for this name." };
     }
-    return { orders, message: "" };
+    return { orders: pendingOrders, message: "" };
   } catch (e) {
     return { orders: [], message: "An error occurred while searching." };
   }
@@ -64,6 +66,7 @@ export async function addSignature(orderId: string, signature: string) {
         }
         revalidatePath(`/order/${orderId}`);
         revalidatePath('/associate');
+        revalidatePath('/');
     } catch (error) {
         console.error("Failed to add signature:", error);
         throw new Error("Failed to save signature.");
