@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Lock, Users } from 'lucide-react';
 import { useUser, useFirebase } from '@/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
 
 export function AccessGate({ children }: { children: React.ReactNode }) {
   const { auth } = useFirebase();
@@ -16,6 +17,7 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const email = "associate@signtrack.com";
+  const { toast } = useToast();
 
 
   const handleLogin = async () => {
@@ -25,20 +27,20 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
     }
     setError('');
     try {
-      if (password === 'admin') {
-        // The associate user was created with email 'associate@signtrack.com' and password 'password'
-        // We sign in with those credentials if the user enters 'admin'
-        await signInWithEmailAndPassword(auth, email, 'password');
-      } else {
-        setError('Incorrect password. Please try again.');
-        setPassword('');
-      }
+      // The associate user was created with email 'associate@signtrack.com' and password 'password'
+      // We sign in with those credentials if the user enters 'admin'
+      await signInWithEmailAndPassword(auth, email, password);
     } catch (e: any) {
       console.error(e);
-      if (e.code === 'auth/invalid-credential' || e.code === 'auth/user-not-found') {
-         setError('Authentication failed. Please check the credentials or contact an administrator.');
+      if (e.code === 'auth/invalid-credential' || e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password') {
+         setError('Authentication failed. Please check the password and try again.');
+         toast({
+            title: "Login Failed",
+            description: "Invalid credentials provided for associate account.",
+            variant: "destructive",
+         })
       } else {
-        setError('An unexpected error occurred. Please try again.');
+        setError('An unexpected error occurred during login. Please try again.');
       }
       setPassword('');
     }
