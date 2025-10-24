@@ -1,134 +1,67 @@
 /**
- * @fileoverview Firestore Security Rules for SignTrack application.
+ * @fileoverview Firestore Security Rules for the SignTrack application.
  *
  * Core Philosophy:
- * This ruleset enforces a role-based access control model for orders and an ownership model for associates and signatures.
+ * This ruleset prioritizes ease of access for prototyping. All authenticated users have read and write access.
  *
  * Data Structure:
- * - /associates/{associateId}: Stores associate profile information, managed by admins.
- * - /orders/{orderId}: Stores order information, including a members map for associate access control.
- * - /signatures/{signatureId}: Stores signature data linked to orders.
+ * - /associates/{associateId}: Stores associate profile information.
+ * - /orders/{orderId}: Stores order information.
+ * - /signatures/{signatureId}: Stores signature data associated with an order.
  *
  * Key Security Decisions:
- * - Associates can only access orders they are members of, based on the 'members' map in the order document.
- * - Associates can only read/write their own associate profile.
- * - Associates are not able to list other associates.
+ * - Open access for prototyping.
  *
- * Denormalization for Authorization:
- * - Orders documents contain a `members` map that explicitly lists which associates have access, avoiding complex queries for authorization.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to associate profiles.
+     * @description Manages associate profile data.
      * @path /associates/{associateId}
-     * @allow (get) Associate with matching ID can read their own profile.
-     * @allow (create) Associates can create their own profile.
-     * @allow (update) Associate with matching ID can update their own profile.
-     * @allow (delete) Associate with matching ID can delete their own profile.
-     * @deny (get) Associate trying to read another associate's profile.
-     * @deny (create) Associate trying to create profile with ID that does not match their own id.
-     * @deny (update) Associate trying to update another associate's profile.
-     * @deny (delete) Associate trying to delete another associate's profile.
-     * @principle Enforces document ownership for associate profiles.
+     * @allow (create, update, delete) - Any signed in user can create, update, delete associate data.
+     * @allow (get, list) - Any signed in user can get, list associate data.
+     * @deny (create, update, delete) - Not signed in user can't create, update, delete associate data.
+     * @deny (get, list) - Not signed in user can't get, list associate data.
+     * @principle Allows any signed in user to read and write associate data.
      */
     match /associates/{associateId} {
-      // Helpers
-      function isAssociate() {
-        return request.auth != null;
-      }
-
-      function isOwner(associateId) {
-        return request.auth.uid == associateId;
-      }
-
-      function isExistingOwner(associateId) {
-        return isOwner(associateId) && resource != null;
-      }
-
-      // Permissions
-
-      allow get: if isOwner(associateId);
-      allow list: if false;
-
-      allow create: if isAssociate() && request.auth.uid == associateId;
-
-      allow update: if isExistingOwner(associateId);
-
-      allow delete: if isExistingOwner(associateId);
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to order documents.
+     * @description Manages order information.
      * @path /orders/{orderId}
-     * @allow (get) Associate who is a member of the order can read the order.
-     * @allow (create) Associate can create an order and is added to the members map.
-     * @allow (update) Associate who is a member of the order can update the order.
-     * @allow (delete) Associate who is a member of the order can delete the order.
-     * @deny (get) Associate trying to read an order they are not a member of.
-     * @deny (create) Associate trying to create an order without adding themselves to the members map.
-     * @deny (update) Associate trying to update an order they are not a member of.
-     * @deny (delete) Associate trying to delete an order they are not a member of.
-     * @principle Enforces role-based access control for orders based on the 'members' map.
+     * @allow (create, update, delete) - Any signed in user can create, update, delete order data.
+     * @allow (get, list) - Any signed in user can get, list order data.
+     * @deny (create, update, delete) - Not signed in user can't create, update, delete order data.
+     * @deny (get, list) - Not signed in user can't get, list order data.
+     * @principle Allows any signed in user to read and write order data.
      */
     match /orders/{orderId} {
-      // Helpers
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isMember() {
-        return isSignedIn() && resource.data.members[request.auth.uid] == true;
-      }
-
-      function isNewOrderOwner() {
-        return isSignedIn() && request.resource.data.members[request.auth.uid] == true;
-      }
-
-      function isExistingOwner() {
-        return isSignedIn() && resource.data.members[request.auth.uid] == true && resource != null;
-      }
-
-      // Permissions
-
-      allow get: if isMember();
-      allow list: if isSignedIn();
-
-      allow create: if isNewOrderOwner();
-
-      allow update: if isExistingOwner();
-
-      allow delete: if isExistingOwner();
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
     }
 
     /**
-     * @description Controls access to signature documents.
+     * @description Manages signature data associated with an order.
      * @path /signatures/{signatureId}
-     * @allow (get) Anyone can read a signature.
-     * @allow (create) Associate can create a signature.
-     * @allow (update) Associate who created the signature can update it.
-     * @allow (delete) Associate who created the signature can delete it.
-     * @deny (create) Unauthorized user cannot create a signature.
-     * @deny (update) Unauthorized user cannot update a signature.
-     * @deny (delete) Unauthorized user cannot delete a signature.
-     * @principle Enforces document ownership for signatures.
+     * @allow (create, update, delete) - Any signed in user can create, update, delete signature data.
+     * @allow (get, list) - Any signed in user can get, list signature data.
+     * @deny (create, update, delete) - Not signed in user can't create, update, delete signature data.
+     * @deny (get, list) - Not signed in user can't get, list signature data.
+     * @principle Allows any signed in user to read and write signature data.
      */
     match /signatures/{signatureId} {
-      // Helpers
-      function isSignedIn() {
-        return request.auth != null;
-      }
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isSignedIn();
+    }
 
-      allow get: if true;
-      allow list: if false;
-
-      allow create: if isSignedIn();
-
-      allow update: if request.auth.uid == resource.data.creatorId;
-
-      allow delete: if request.auth.uid == resource.data.creatorId;
+    // Helper function to check if a user is signed in
+    function isSignedIn() {
+      return request.auth != null;
     }
   }
 }
