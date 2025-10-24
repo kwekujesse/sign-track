@@ -1,3 +1,5 @@
+import { Timestamp } from "firebase/firestore";
+
 export interface Order {
   id: string;
   orderNumber: string;
@@ -6,8 +8,8 @@ export interface Order {
   customerName: string; // Combined for search and display
   binNumber: string;
   status: "Awaiting Pickup" | "Picked Up";
-  createdAt: string;
-  pickedUpAt?: string;
+  createdAt: Timestamp | Date | string;
+  pickedUpAt?: Timestamp | Date | string;
   signature?: string; // base64 data URL
 
   // Fields for case-insensitive search

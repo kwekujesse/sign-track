@@ -25,35 +25,24 @@ import { Edit, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { EditOrderDialog } from "./edit-order-dialog";
 import { DeleteOrderDialog } from "./delete-order-dialog";
+import { Timestamp } from "firebase/firestore";
 
 export function OrdersTable({ orders, isLoading }: { orders: Order[], isLoading?: boolean }) {
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
   const [deletingOrder, setDeletingOrder] = useState<Order | null>(null);
   
-  const formatDate = (dateInput?: string | Date) => {
+  const formatDate = (dateInput?: string | Date | Timestamp) => {
     if (!dateInput) return "N/A";
-    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+    const date = dateInput instanceof Timestamp ? dateInput.toDate() : new Date(dateInput);
     if (!isValid(date)) return "Invalid Date";
-    try {
-        const parsedDate = (dateInput instanceof Date) ? dateInput : new Date(dateInput);
-        if (isNaN(parsedDate.getTime())) return "Invalid Date";
-        return format(parsedDate, "MMM d, yyyy 'at' h:mm a");
-    } catch (error) {
-        return "Invalid Date";
-    }
+    return format(date, "MMM d, yyyy 'at' h:mm a");
   }
 
-  const formatShortDate = (dateInput?: string | Date) => {
-      if (!dateInput) return "N/A";
-      const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
-       if (!isValid(date)) return "Invalid Date";
-      try {
-          const parsedDate = (dateInput instanceof Date) ? dateInput : new Date(dateInput);
-          if (isNaN(parsedDate.getTime())) return "Invalid Date";
-          return format(parsedDate, "MMM d, yyyy");
-      } catch (error) {
-          return "Invalid Date";
-      }
+  const formatShortDate = (dateInput?: string | Date | Timestamp) => {
+    if (!dateInput) return "N/A";
+    const date = dateInput instanceof Timestamp ? dateInput.toDate() : new Date(dateInput);
+    if (!isValid(date)) return "Invalid Date";
+    return format(date, "MMM d, yyyy");
   }
 
   const TableSkeleton = () => (
@@ -115,10 +104,10 @@ export function OrdersTable({ orders, isLoading }: { orders: Order[], isLoading?
                     <TooltipProvider>
                         <Tooltip>
                             <TooltipTrigger>
-                                <span className="cursor-default">{formatShortDate(order.createdAt.toString())}</span>
+                                <span className="cursor-default">{formatShortDate(order.createdAt as any)}</span>
                             </TooltipTrigger>
                             <TooltipContent>
-                                <p>{formatDate(order.createdAt.toString())}</p>
+                                <p>{formatDate(order.createdAt as any)}</p>
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>
@@ -139,7 +128,7 @@ export function OrdersTable({ orders, isLoading }: { orders: Order[], isLoading?
                             </div>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p>Picked up on {formatDate(order.pickedUpAt)}</p>
+                            <p>Picked up on {formatDate(order.pickedUpAt as any)}</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
