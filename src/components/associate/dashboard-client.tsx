@@ -54,7 +54,12 @@ export function DashboardClient({ orders: initialOrders }: { orders: Order[] }) 
       );
       
       const today = new Date().toISOString().split('T')[0];
-      const todayPickups = pickedUp.filter(order => order.pickedUpAt?.startsWith(today));
+      const todayPickups = pickedUp.filter(order => {
+        if (!order.pickedUpAt) return false;
+        // Ensure pickedUpAt is a string before calling startsWith
+        const pickedUpAtDate = new Date(order.pickedUpAt);
+        return pickedUpAtDate.toISOString().split('T')[0] === today;
+      });
       
       setAwaitingPickupOrders(awaiting);
       setPickedUpOrders(pickedUp);
@@ -64,7 +69,11 @@ export function DashboardClient({ orders: initialOrders }: { orders: Order[] }) 
         const awaiting = initialOrders.filter((order) => order.status === "Awaiting Pickup");
         const pickedUp = initialOrders.filter((order) => order.status === "Picked Up");
         const today = new Date().toISOString().split('T')[0];
-        const todayPickups = pickedUp.filter(order => order.pickedUpAt?.startsWith(today));
+        const todayPickups = pickedUp.filter(order => {
+            if (!order.pickedUpAt) return false;
+            const pickedUpAtDate = new Date(order.pickedUpAt);
+            return pickedUpAtDate.toISOString().split('T')[0] === today;
+        });
         
         setAwaitingPickupOrders(awaiting);
         setPickedUpOrders(pickedUp);
