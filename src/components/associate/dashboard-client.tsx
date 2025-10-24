@@ -23,14 +23,15 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FilePlus2, FileText, Package, CheckCircle } from "lucide-react";
 import { OrderEntryForm } from "./order-entry-form";
-import { useCollection, useFirebase } from "@/firebase";
+import { useCollection, useFirebase, useUser } from "@/firebase";
 import { collection, query, orderBy } from "firebase/firestore";
 
 export function DashboardClient({ orders: initialOrders }: { orders: Order[] }) {
   const { firestore } = useFirebase();
+  const { user } = useUser();
   const [isNewOrderDialogOpen, setIsNewOrderDialogOpen] = useState(false);
   
-  const ordersQuery = firestore ? query(collection(firestore, "orders"), orderBy("createdAt", "desc")) : null;
+  const ordersQuery = firestore && user ? query(collection(firestore, "orders"), orderBy("createdAt", "desc")) : null;
   const { data: orders, isLoading } = useCollection<Order>(ordersQuery);
 
   const [awaitingPickupOrders, setAwaitingPickupOrders] = useState<Order[]>([]);
