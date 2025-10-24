@@ -1,8 +1,8 @@
 "use client";
 
-import { useFormState } from "react-dom";
+import { useActionState } from "react";
 import Link from "next/link";
-import { Search, Loader2 } from "lucide-react";
+import { Search } from "lucide-react";
 
 import { searchOrders } from "@/lib/actions";
 import { type Order } from "@/lib/types";
@@ -19,13 +19,8 @@ const searchSchema = z.object({
   customerName: z.string().min(2, "Please enter at least 2 characters"),
 });
 
-type SearchResult = {
-  orders: Order[];
-  message: string;
-};
-
 export function CustomerSearch() {
-  const [state, formAction] = useFormState(searchOrders, { orders: [], message: "" });
+  const [state, formAction] = useActionState(searchOrders, { orders: [], message: "" });
   
   const form = useForm<z.infer<typeof searchSchema>>({
     resolver: zodResolver(searchSchema),
