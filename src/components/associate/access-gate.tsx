@@ -14,8 +14,8 @@ import { useToast } from '@/hooks/use-toast';
 export function AccessGate({ children }: { children: React.ReactNode }) {
   const { auth } = useFirebase();
   const { user, isUserLoading } = useUser();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('print.marketing1147@gmail.com');
+  const [password, setPassword] = useState('Staples1147');
   const [error, setError] = useState('');
   const { toast } = useToast();
 
