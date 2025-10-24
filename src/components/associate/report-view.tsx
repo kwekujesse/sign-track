@@ -1,6 +1,6 @@
 import React from 'react';
 import { type Order } from "@/lib/types";
-import { Logo } from '../logo';
+import { Package } from 'lucide-react';
 import Image from 'next/image';
 import { format } from 'date-fns';
 import { Timestamp } from 'firebase/firestore';
@@ -24,7 +24,12 @@ export const ReportView = React.forwardRef<HTMLDivElement, { orders: Order[] }>(
             </style>
             <header className="flex justify-between items-center pb-4 border-b border-gray-300">
                 <div>
-                    <Logo className="text-black h-8"/>
+                    <div className="flex items-center space-x-2">
+                        <Package className="h-8 w-8 text-black" />
+                        <span className="font-bold text-xl">
+                        HOLIDAY CARD PICKUP
+                        </span>
+                    </div>
                     <h1 className="text-2xl font-bold mt-2">End of Day Pickup Report</h1>
                 </div>
                 <div className="text-right">
