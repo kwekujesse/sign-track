@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
-import { Package, Users } from "lucide-react";
+import { Package, Home } from "lucide-react";
 
 export function MainNav() {
   return (
@@ -18,9 +18,9 @@ export function MainNav() {
         <div className="flex flex-1 items-center justify-end space-x-2">
           <nav className="flex items-center">
             <Button variant="ghost" asChild>
-              <Link href="/associate">
-                <Users className="mr-2 h-4 w-4" />
-                Associate Dashboard
+              <Link href="/">
+                <Home className="mr-2 h-4 w-4" />
+                Customer View
               </Link>
             </Button>
           </nav>
