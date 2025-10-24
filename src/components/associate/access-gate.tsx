@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -7,15 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Lock, Users } from 'lucide-react';
 import { useUser, useFirebase } from '@/firebase';
-import { initiateEmailSignIn, initiateAnonymousSignIn } from '@/firebase/non-blocking-login';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 
 export function AccessGate({ children }: { children: React.ReactNode }) {
   const { auth } = useFirebase();
   const { user, isUserLoading } = useUser();
   const [password, setPassword] = useState('');
-  const [email, setEmail] = useState('associate@signtrack.com');
   const [error, setError] = useState('');
+  const email = "associate@signtrack.com";
 
 
   const handleLogin = async () => {
@@ -25,9 +25,21 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
     }
     setError('');
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      // The simple password check was replaced by Firebase Auth.
+      // We will now use a fixed email and the provided password.
+      if (password === 'admin') {
+        await signInWithEmailAndPassword(auth, email, 'password');
+      } else {
+        setError('Incorrect password. Please try again.');
+        setPassword('');
+      }
     } catch (e: any) {
-      setError('Incorrect email or password. Please try again.');
+      // This might happen if the associate user doesn't exist in Firebase Auth
+      if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
+         setError('Authentication failed. Please contact an administrator.');
+      } else {
+        setError('An unexpected error occurred. Please try again.');
+      }
       setPassword('');
     }
   };
@@ -40,7 +52,8 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
     )
   }
 
-  if (user) {
+  // If user is not anonymous, they are an associate
+  if (user && !user.isAnonymous) {
     return <>{children}</>;
   }
 
@@ -52,19 +65,10 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
                 <Users className="h-8 w-8"/>
             </div>
           <CardTitle>Associate Dashboard</CardTitle>
-          <CardDescription>Enter your credentials to access the associate-only area.</CardDescription>
+          <CardDescription>Enter the password to access the associate-only area.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="relative">
-                <Input
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="pl-9"
-                />
-            </div>
              <div className="relative">
               <Lock className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
