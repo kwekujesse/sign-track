@@ -1,0 +1,86 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { SignaturePad, type SignaturePadRef } from "./signature-pad";
+import { Button } from "./ui/button";
+import { addSignature } from "@/lib/actions";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, CheckCircle } from "lucide-react";
+
+export function SignatureCapture({ orderId }: { orderId: string }) {
+  const signaturePadRef = useRef<SignaturePadRef>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  const handleClear = () => {
+    signaturePadRef.current?.clear();
+  };
+
+  const handleSubmit = async () => {
+    if (signaturePadRef.current?.isEmpty()) {
+      toast({
+        title: "Signature Required",
+        description: "Please provide a signature before confirming.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    const signatureDataUrl = signaturePadRef.current?.toDataURL();
+
+    if (signatureDataUrl) {
+      try {
+        await addSignature(orderId, signatureDataUrl);
+        toast({
+          title: "Pickup Confirmed!",
+          description: "Your order has been marked as picked up.",
+          className: "bg-accent text-accent-foreground"
+        });
+      } catch (error) {
+        toast({
+          title: "Submission Failed",
+          description: "Could not save signature. Please try again.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+      }
+    } else {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="text-sm font-medium">Signature</label>
+        <SignaturePad ref={signaturePadRef} />
+        <p className="text-xs text-muted-foreground mt-1">
+          Draw your signature in the box above.
+        </p>
+      </div>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <Button
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+          className="w-full sm:w-auto"
+        >
+          {isSubmitting ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <CheckCircle className="mr-2 h-4 w-4" />
+          )}
+          Confirm Signature
+        </Button>
+        <Button
+          variant="outline"
+          onClick={handleClear}
+          disabled={isSubmitting}
+          className="w-full sm:w-auto"
+        >
+          Clear
+        </Button>
+      </div>
+    </div>
+  );
+}
