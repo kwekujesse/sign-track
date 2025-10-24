@@ -56,8 +56,11 @@ export function DashboardClient({ orders: initialOrders }: { orders: Order[] }) 
       const today = new Date().toISOString().split('T')[0];
       const todayPickups = pickedUp.filter(order => {
         if (!order.pickedUpAt) return false;
-        // Ensure pickedUpAt is a string before calling startsWith
+        // Ensure pickedUpAt is a valid date before creating a Date object
         const pickedUpAtDate = new Date(order.pickedUpAt);
+        if (isNaN(pickedUpAtDate.getTime())) {
+          return false; // Invalid date
+        }
         return pickedUpAtDate.toISOString().split('T')[0] === today;
       });
       
@@ -72,6 +75,9 @@ export function DashboardClient({ orders: initialOrders }: { orders: Order[] }) 
         const todayPickups = pickedUp.filter(order => {
             if (!order.pickedUpAt) return false;
             const pickedUpAtDate = new Date(order.pickedUpAt);
+            if (isNaN(pickedUpAtDate.getTime())) {
+                return false; // Invalid date
+            }
             return pickedUpAtDate.toISOString().split('T')[0] === today;
         });
         
