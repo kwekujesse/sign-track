@@ -3,12 +3,15 @@ import { type Order } from "@/lib/types";
 import { Logo } from '../logo';
 import Image from 'next/image';
 import { format } from 'date-fns';
+import { Timestamp } from 'firebase/firestore';
 
 export const ReportView = React.forwardRef<HTMLDivElement, { orders: Order[] }>(({ orders }, ref) => {
     
-    const formatDate = (dateString?: string) => {
-        if (!dateString) return "N/A";
-        return format(new Date(dateString), "MMM d, yyyy h:mm a");
+    const formatDate = (dateInput?: string | Date | Timestamp) => {
+        if (!dateInput) return "N/A";
+        const date = dateInput instanceof Timestamp ? dateInput.toDate() : new Date(dateInput);
+        if (!date || isNaN(date.getTime())) return "Invalid Date";
+        return format(date, "MMM d, yyyy h:mm a");
     }
   
     return (

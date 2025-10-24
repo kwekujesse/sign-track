@@ -25,7 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FilePlus2, FileText, Package, CheckCircle } from "lucide-react";
 import { OrderEntryForm } from "./order-entry-form";
 import { useCollection, useFirebase, useUser, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, getFirestore, where } from "firebase/firestore";
+import { collection, query, orderBy, getFirestore, where, Timestamp } from "firebase/firestore";
 
 export function DashboardClient({ orders: initialOrders }: { orders: Order[] }) {
   const { firestore } = useFirebase();
@@ -53,15 +53,23 @@ export function DashboardClient({ orders: initialOrders }: { orders: Order[] }) 
         (order) => order.status === "Picked Up"
       );
       
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
       const todayPickups = pickedUp.filter(order => {
         if (!order.pickedUpAt) return false;
-        // Ensure pickedUpAt is a valid date before creating a Date object
-        const pickedUpAtDate = new Date(order.pickedUpAt);
+        const pickedUpAtDate = order.pickedUpAt instanceof Timestamp 
+            ? order.pickedUpAt.toDate() 
+            : new Date(order.pickedUpAt);
+            
         if (isNaN(pickedUpAtDate.getTime())) {
-          return false; // Invalid date
+          return false; 
         }
-        return pickedUpAtDate.toISOString().split('T')[0] === today;
+
+        const pickupDay = new Date(pickedUpAtDate);
+        pickupDay.setHours(0, 0, 0, 0);
+
+        return pickupDay.getTime() === today.getTime();
       });
       
       setAwaitingPickupOrders(awaiting);
@@ -71,14 +79,19 @@ export function DashboardClient({ orders: initialOrders }: { orders: Order[] }) 
         // Handle case where orders is null (e.g. on initial load or error)
         const awaiting = initialOrders.filter((order) => order.status === "Awaiting Pickup");
         const pickedUp = initialOrders.filter((order) => order.status === "Picked Up");
-        const today = new Date().toISOString().split('T')[0];
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         const todayPickups = pickedUp.filter(order => {
             if (!order.pickedUpAt) return false;
             const pickedUpAtDate = new Date(order.pickedUpAt);
             if (isNaN(pickedUpAtDate.getTime())) {
                 return false; // Invalid date
             }
-            return pickedUpAtDate.toISOString().split('T')[0] === today;
+            const pickupDay = new Date(pickedUpAtDate);
+            pickupDay.setHours(0, 0, 0, 0);
+            return pickupDay.getTime() === today.getTime();
         });
         
         setAwaitingPickupOrders(awaiting);
