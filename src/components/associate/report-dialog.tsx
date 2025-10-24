@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useRef } from "react";
+import React, { useRef } from "react";
 import { useReactToPrint } from "react-to-print";
 import { type Order } from "@/lib/types";
 import {
@@ -16,7 +17,12 @@ import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
 import { ReportView } from "./report-view";
 
-export function ReportDialog({ children, orders }: { children: React.ReactNode; orders: Order[] }) {
+interface ReportDialogProps {
+  children: React.ReactNode;
+  orders: Order[];
+}
+
+export const ReportDialog = React.forwardRef<HTMLButtonElement, ReportDialogProps>(({ children, orders }, ref) => {
   const componentRef = useRef<HTMLDivElement>(null);
   
   const handlePrint = useReactToPrint({
@@ -26,7 +32,9 @@ export function ReportDialog({ children, orders }: { children: React.ReactNode; 
 
   return (
     <Dialog>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogTrigger asChild>
+        {React.cloneElement(children as React.ReactElement, { ref })}
+      </DialogTrigger>
       <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>End of Day Pickup Report</DialogTitle>
@@ -48,4 +56,6 @@ export function ReportDialog({ children, orders }: { children: React.ReactNode; 
       </DialogContent>
     </Dialog>
   );
-}
+});
+
+ReportDialog.displayName = "ReportDialog";

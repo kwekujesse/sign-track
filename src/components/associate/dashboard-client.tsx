@@ -44,7 +44,7 @@ export function DashboardClient({ orders: initialOrders }: { orders: Order[] }) 
   const [pickedUpToday, setPickedUpToday] = useState<Order[]>([]);
 
   useEffect(() => {
-    const allOrders = orders; // We will now only rely on the real-time data
+    const allOrders = orders || initialOrders; 
     if (allOrders) {
       const awaiting = allOrders.filter(
         (order) => order.status === "Awaiting Pickup"
@@ -75,28 +75,6 @@ export function DashboardClient({ orders: initialOrders }: { orders: Order[] }) 
       setAwaitingPickupOrders(awaiting);
       setPickedUpOrders(pickedUp);
       setPickedUpToday(todayPickups);
-    } else {
-        // Handle case where orders is null (e.g. on initial load or error)
-        const awaiting = initialOrders.filter((order) => order.status === "Awaiting Pickup");
-        const pickedUp = initialOrders.filter((order) => order.status === "Picked Up");
-        
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const todayPickups = pickedUp.filter(order => {
-            if (!order.pickedUpAt) return false;
-            const pickedUpAtDate = new Date(order.pickedUpAt);
-            if (isNaN(pickedUpAtDate.getTime())) {
-                return false; // Invalid date
-            }
-            const pickupDay = new Date(pickedUpAtDate);
-            pickupDay.setHours(0, 0, 0, 0);
-            return pickupDay.getTime() === today.getTime();
-        });
-        
-        setAwaitingPickupOrders(awaiting);
-        setPickedUpOrders(pickedUp);
-        setPickedUpToday(todayPickups);
     }
   }, [orders, initialOrders]);
 
