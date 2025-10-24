@@ -29,7 +29,7 @@ const toOrder = (doc: firebase.firestore.QueryDocumentSnapshot | firebase.firest
     id: doc.id,
     ...data,
     customerName: data.customerName || `${data.firstName} ${data.lastName}`,
-    createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
+    createdAt: (data.createdAt instanceof Timestamp) ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
     pickedUpAt: data.pickedUpAt ? (data.pickedUpAt as Timestamp).toDate().toISOString() : undefined,
   } as Order;
 }
@@ -55,30 +55,27 @@ export const getOrderById = async (id: string): Promise<Order | undefined> => {
 };
 
 export const findOrdersByName = async (name: string): Promise<Order[]> => {
-  if (!name) return [];
-  const db = getDb();
-  const ordersCol = collection(db, 'orders');
+    if (!name) return [];
+    const db = getDb();
+    const ordersCol = collection(db, 'orders');
 
-  const nameLower = name.toLowerCase();
-  
-  // Create queries for first name and last name
-  const q = query(ordersCol, 
-    or(
-      where('firstName', '>=', name), where('firstName', '<=', name + '\uf8ff'),
-      where('lastName', '>=', name), where('lastName', '<=', name + '\uf8ff'),
-      where('customerName', '>=', name), where('customerName', '<=', name + '\uf8ff')
-    )
-  );
+    const nameLower = name.toLowerCase();
 
-  const orderSnapshot = await getDocs(q);
-  const orderList = orderSnapshot.docs.map(toOrder);
-  
-  // Client-side filter for case-insensitivity as Firestore is case-sensitive
-  return orderList.filter(order => 
-       order.firstName.toLowerCase().includes(nameLower) 
-    || order.lastName.toLowerCase().includes(nameLower)
-    || order.customerName.toLowerCase().includes(nameLower)
-  );
+    // Firestore's string search capabilities are case-sensitive and don't support partial matching easily with security.
+    // A common strategy is to query for a range and then filter client-side.
+    const q = query(ordersCol, 
+      where('customerName', '>=', name),
+      where('customerName', '<=', name + '\uf8ff')
+    );
+
+    const orderSnapshot = await getDocs(q);
+    const orderList = orderSnapshot.docs.map(toOrder);
+    
+    // As Firestore '!=' and 'not-in' queries have limitations and case-insensitivity is complex server-side,
+    // we do a final, more precise filter on the client.
+    return orderList.filter(order => 
+      order.customerName.toLowerCase().includes(nameLower)
+    );
 };
 
 export const addOrder = async (data: {
@@ -125,3 +122,4 @@ export const addSignatureToOrder = async (
   }
   return undefined;
 };
+
