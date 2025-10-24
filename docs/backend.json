@@ -1,0 +1,159 @@
+{
+  "entities": {
+    "Order": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Order",
+      "type": "object",
+      "description": "Represents an order in the SignTrack system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Order entity."
+        },
+        "orderNumber": {
+          "type": "string",
+          "description": "The order number, typically obtained by scanning a barcode."
+        },
+        "customerName": {
+          "type": "string",
+          "description": "The name of the customer associated with the order."
+        },
+        "binNumber": {
+          "type": "string",
+          "description": "The bin number where the order is stored."
+        },
+        "signatureId": {
+          "type": "string",
+          "description": "Reference to Signature. (Relationship: Order 1:1 Signature) Null if the order hasn't been signed yet."
+        },
+        "pickupStatus": {
+          "type": "boolean",
+          "description": "Indicates whether the order has been picked up by the customer."
+        },
+        "pickupTimestamp": {
+          "type": "string",
+          "description": "The timestamp when the order was marked as picked up.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "orderNumber",
+        "customerName",
+        "binNumber",
+        "pickupStatus"
+      ]
+    },
+    "Signature": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Signature",
+      "type": "object",
+      "description": "Represents a customer's signature for an order.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Signature entity."
+        },
+        "signatureData": {
+          "type": "string",
+          "description": "The signature data (e.g., a base64 encoded image)."
+        },
+        "signedDate": {
+          "type": "string",
+          "description": "The date and time when the signature was captured.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "signatureData",
+        "signedDate"
+      ]
+    },
+    "Associate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Associate",
+      "type": "object",
+      "description": "Represents an associate in the SignTrack system.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Associate entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the associate."
+        },
+        "email": {
+          "type": "string",
+          "description": "The email address of the associate.",
+          "format": "email"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/associates/{associateId}",
+        "definition": {
+          "entityName": "Associate",
+          "schema": {
+            "$ref": "#/backend/entities/Associate"
+          },
+          "description": "Stores associate profile data.  Documents in this collection are created and managed by admins. Authorization is based on associate ID.",
+          "params": [
+            {
+              "name": "associateId",
+              "description": "The unique identifier of the associate."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/orders/{orderId}",
+        "definition": {
+          "entityName": "Order",
+          "schema": {
+            "$ref": "#/backend/entities/Order"
+          },
+          "description": "Stores order information, including order number, customer name, bin number, signature reference, and pickup status. Includes denormalized customerName for authorization independence (customer search) and associate members map for authorization independence.",
+          "params": [
+            {
+              "name": "orderId",
+              "description": "The unique identifier of the order."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/signatures/{signatureId}",
+        "definition": {
+          "entityName": "Signature",
+          "schema": {
+            "$ref": "#/backend/entities/Signature"
+          },
+          "description": "Stores signature data associated with an order.  Signatures are linked to orders via the 'signatureId' field in the order document. This enables to get signatures based on signatureId.",
+          "params": [
+            {
+              "name": "signatureId",
+              "description": "The unique identifier of the signature."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to support the SignTrack application's core features: Order Entry, Customer Search/Signature Capture, and an Associate Dashboard. To ensure security and scalability, we use structural segregation and denormalization.  \n\n*   **Authorization Independence:** The `orders` collection contains a `members` map, which stores roles of users (associates) who have access to the order. Also customer name stored on the Order document enables to show customer orders on the customer facing app.\n*   **Segregation:**  The `associates` collection stores associate profiles separate from order data. This ensures that associate data (e.g., email) is not mixed with order-related information.\n*   **QAPs (List operations):** The structure supports secure list operations. Associates can list orders they have access to based on their presence in the `members` map of the `orders` document. Customers can search for orders by their names.\n\nThis design enables simple, robust, and easily debuggable security rules."
+  }
+}
