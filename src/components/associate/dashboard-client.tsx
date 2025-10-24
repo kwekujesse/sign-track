@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { type Order } from "@/lib/types";
 import { OrdersTable } from "./orders-table";
 import { ReportDialog } from "./report-dialog";
@@ -23,19 +23,38 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FilePlus2, FileText, Package, CheckCircle } from "lucide-react";
 import { OrderEntryForm } from "./order-entry-form";
+import { useCollection, useFirebase } from "@/firebase";
+import { collection, query, orderBy } from "firebase/firestore";
 
-export function DashboardClient({ orders }: { orders: Order[] }) {
+export function DashboardClient({ orders: initialOrders }: { orders: Order[] }) {
+  const { firestore } = useFirebase();
   const [isNewOrderDialogOpen, setIsNewOrderDialogOpen] = useState(false);
-
-  const awaitingPickupOrders = orders.filter(
-    (order) => order.status === "Awaiting Pickup"
-  );
-  const pickedUpOrders = orders.filter(
-    (order) => order.status === "Picked Up"
-  );
   
-  const today = new Date().toISOString().split('T')[0];
-  const pickedUpToday = pickedUpOrders.filter(order => order.pickedUpAt?.startsWith(today));
+  const ordersQuery = firestore ? query(collection(firestore, "orders"), orderBy("createdAt", "desc")) : null;
+  const { data: orders, isLoading } = useCollection<Order>(ordersQuery);
+
+  const [awaitingPickupOrders, setAwaitingPickupOrders] = useState<Order[]>([]);
+  const [pickedUpOrders, setPickedUpOrders] = useState<Order[]>([]);
+  const [pickedUpToday, setPickedUpToday] = useState<Order[]>([]);
+
+  useEffect(() => {
+    const allOrders = orders || initialOrders;
+    if (allOrders) {
+      const awaiting = allOrders.filter(
+        (order) => order.status === "Awaiting Pickup"
+      );
+      const pickedUp = allOrders.filter(
+        (order) => order.status === "Picked Up"
+      );
+      
+      const today = new Date().toISOString().split('T')[0];
+      const todayPickups = pickedUp.filter(order => order.pickedUpAt?.startsWith(today));
+      
+      setAwaitingPickupOrders(awaiting);
+      setPickedUpOrders(pickedUp);
+      setPickedUpToday(todayPickups);
+    }
+  }, [orders, initialOrders]);
 
 
   return (
@@ -90,7 +109,7 @@ export function DashboardClient({ orders }: { orders: Order[] }) {
               <CardDescription>These orders have been binned and are ready for customer pickup.</CardDescription>
             </CardHeader>
             <CardContent>
-              <OrdersTable orders={awaitingPickupOrders} />
+              <OrdersTable orders={awaitingPickupOrders} isLoading={isLoading} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -101,7 +120,7 @@ export function DashboardClient({ orders }: { orders: Order[] }) {
               <CardDescription>These orders have been signed for and picked up by customers.</CardDescription>
             </CardHeader>
             <CardContent>
-              <OrdersTable orders={pickedUpOrders} />
+              <OrdersTable orders={pickedUpOrders} isLoading={isLoading} />
             </CardContent>
           </Card>
         </TabsContent>

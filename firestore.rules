@@ -1,120 +1,152 @@
 /**
- * @file Firestore Security Rules for SignTrack Application
+ * @fileoverview Firestore Security Rules for SignTrack application.
  *
- * @core_philosophy This ruleset employs a hybrid security model: associates have role-based access to orders, while associating their profiles are restricted to owner-only access.
+ * Core Philosophy:
+ * This ruleset enforces role-based access control for orders, and self-ownership for associates, and signature data, to ensure only authorized associates can manage orders.
  *
- * @data_structure
- * - /associates/{associateId}: Stores associate profile data.
- * - /orders/{orderId}: Stores order information, including a `members` map for associate roles.
- * - /signatures/{signatureId}: Stores signature data.
+ * Data Structure:
+ * - /associates/{associateId}: Stores associate profile data. Associate documents are secured with owner-only access.
+ * - /orders/{orderId}: Stores order information. Order documents are secured with role-based access using a `members` map on each document.
+ * - /signatures/{signatureId}: Stores signature data. Signature documents are secured with owner-only access.
  *
- * @key_security_decisions
- * - Associates can only manage their profiles.
- * - Associates can only access Orders in which they are listed in the 'members' map with a defined role.
- * - Only authenticated users can access the database. Anonymous access will also work.
- * - Listing all associates or signatures is disallowed.
+ * Key Security Decisions:
+ * - Associates can only manage orders to which they have been explicitly granted access (via the `members` map).
+ * - Customers can search for orders by their names.
  *
- * @denormalization_for_authorization
- * - The `orders` document contains a `members` map which stores roles of users who have access to the order. This eliminates the need for separate membership lookups.
- *
+ * Denormalization for Authorization:
+ * The `orders` documents include a `members` map to directly store associate roles, eliminating the need for separate lookups and enabling efficient access control.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Checks if the user is signed in.
-     */
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    /**
-     * @description Checks if the user is the owner of the resource.
-     */
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-
-    /**
-     * @description Checks if the user is an existing owner of the resource.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
-
-    /**
-     * @description Checks if the user has the specified role for the resource.
-     */
-    function hasRole(role) {
-        return isSignedIn() && resource.data.members[request.auth.uid] == role;
-    }
-
-    /**
-     * @description Checks if the user has the specified role for the request data.
-     */
-    function requestHasRole(role) {
-        return isSignedIn() && request.resource.data.members[request.auth.uid] == role;
-    }
-
-    /**
-     * @description Rules for the /associates/{associateId} collection.
+     * @description Grants owner-only access to associate documents.
      * @path /associates/{associateId}
-     * @allow (create) Signed-in user with UID matching the associateId can create.
-     * @allow (get) Signed-in user with UID matching the associateId can get.
-     * @allow (update) Signed-in user with UID matching the associateId can update.
-     * @allow (delete) Signed-in user with UID matching the associateId can delete.
-     * @deny (create) Signed-in user with UID not matching the associateId cannot create.
-     * @deny (get) Signed-in user with UID not matching the associateId cannot get.
-     * @deny (update) Signed-in user with UID not matching the associateId cannot update.
-     * @deny (delete) Signed-in user with UID not matching the associateId cannot delete.
-     * @principle Enforces document ownership for writes.
+     * @allow (create) Associate with ID 'user_abc' can create their own profile.
+     *   auth.uid: 'user_abc'
+     *   request.resource.data: { id: 'user_abc', name: 'John Doe', email: 'john.doe@example.com' }
+     * @allow (get) Associate with ID 'user_abc' can read their profile.
+     *   auth.uid: 'user_abc'
+     * @allow (update) Associate with ID 'user_abc' can update their profile.
+     *   auth.uid: 'user_abc'
+     * @allow (delete) Associate with ID 'user_abc' can delete their profile.
+     *   auth.uid: 'user_abc'
+     * @deny (create) Associate with ID 'user_abc' cannot create another associate's profile.
+     *   auth.uid: 'user_abc'
+     *   request.resource.data: { id: 'user_xyz', name: 'Jane Doe', email: 'jane.doe@example.com' }
+     * @deny (get) Associate with ID 'user_abc' cannot read another associate's profile.
+     *   auth.uid: 'user_abc'
+     * @deny (update) Associate with ID 'user_abc' cannot update another associate's profile.
+     *   auth.uid: 'user_abc'
+     * @deny (delete) Associate with ID 'user_abc' cannot delete another associate's profile.
+     *   auth.uid: 'user_abc'
+     * @principle Enforces self-ownership for associate profiles.
      */
     match /associates/{associateId} {
-      allow get: if isSignedIn() && isOwner(associateId);
+      function isOwner(associateId) {
+        return request.auth.uid == associateId;
+      }
+
+      function isExistingOwner(associateId) {
+        return isOwner(associateId) && resource != null;
+      }
+
+      allow get: if isOwner(associateId);
       allow list: if false;
-      allow create: if isSignedIn() && isOwner(associateId);
-      allow update: if isExistingOwner(associateId);
+      allow create: if isOwner(associateId) && request.resource.data.id == associateId;
+      allow update: if isExistingOwner(associateId) && request.resource.data.id == resource.data.id;
       allow delete: if isExistingOwner(associateId);
     }
 
     /**
-     * @description Rules for the /orders/{orderId} collection.
+     * @description Grants role-based access to order documents. Associates must be listed in the 'members' map with appropriate permissions.
      * @path /orders/{orderId}
-     * @allow (get) Any signed-in user can get.
-     * @allow (list) Any signed-in user can list.
-     * @allow (create) Any signed-in user can create. Requires the members map contains at least the creator.
-     * @allow (update) Only users with the role of 'editor' in the members map can update.
-     * @allow (delete) Only users with the role of 'editor' in the members map can delete.
-     * @deny (create) A signed-in user cannot create if the members map is invalid.
-     * @deny (update) A signed-in user cannot update if they are not an editor.
-     * @deny (delete) A signed-in user cannot delete if they are not an editor.
-     * @principle Enforces role-based access via the 'members' map.
+     * @allow (get) Any authenticated user can read an order document.
+     *   auth.uid: 'user_abc'
+     * @allow (list) Any authenticated user can list order documents.
+     *   auth.uid: 'user_abc'
+     * @allow (create) Associate with ID 'user_abc' can create an order if they are in the 'members' map.
+     *   auth.uid: 'user_abc'
+     *   request.resource.data: { members: { 'user_abc': 'editor' } }
+     * @allow (update) Associate with ID 'user_abc' can update an order if they are in the 'members' map.
+     *   auth.uid: 'user_abc'
+     *   resource.data: { members: { 'user_abc': 'editor' } }
+     * @allow (delete) Associate with ID 'user_abc' can delete an order if they are in the 'members' map.
+     *   auth.uid: 'user_abc'
+     *   resource.data: { members: { 'user_abc': 'editor' } }
+     * @deny (create) Associate with ID 'user_abc' cannot create an order if they are NOT in the 'members' map.
+     *   auth.uid: 'user_abc'
+     *   request.resource.data: { members: { 'user_xyz': 'editor' } }
+     * @deny (update) Associate with ID 'user_abc' cannot update an order if they are NOT in the 'members' map.
+     *   auth.uid: 'user_abc'
+     *   resource.data: { members: { 'user_xyz': 'editor' } }
+     * @deny (delete) Associate with ID 'user_abc' cannot delete an order if they are NOT in the 'members' map.
+     *   auth.uid: 'user_abc'
+     *   resource.data: { members: { 'user_xyz': 'editor' } }
+     * @principle Enforces role-based access control using the 'members' map.
      */
     match /orders/{orderId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isMember(order) {
+        return isSignedIn() && order.data.members[request.auth.uid] != null;
+      }
+
+      function isExistingMember(order) {
+          return isMember(order) && resource != null;
+      }
+
       allow get: if isSignedIn();
       allow list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && hasRole('editor');
-      allow delete: if isSignedIn() && hasRole('editor') && resource != null;
+      allow create: if isSignedIn() && isMember(request.resource);
+      allow update: if isExistingMember(resource);
+      allow delete: if isExistingMember(resource);
     }
 
     /**
-     * @description Rules for the /signatures/{signatureId} collection.
+     * @description Grants owner-only access to signature documents.
      * @path /signatures/{signatureId}
-     * @allow (get) Any signed-in user can get.
-     * @deny (list) Listing signatures is not allowed.
-     * @allow (create) Any signed-in user can create.
-     * @allow (update) Any signed-in user can update.
-     * @allow (delete) Any signed-in user can delete.
-     * @principle Allows read/write to signatures.
+     * @allow (create) User with ID 'user_abc' can create a signature if they are the owner.
+     *   auth.uid: 'user_abc'
+     *   request.resource.data: { id: 'user_abc' }
+     * @allow (get) User with ID 'user_abc' can read their signature.
+     *   auth.uid: 'user_abc'
+     * @allow (update) User with ID 'user_abc' can update their signature.
+     *   auth.uid: 'user_abc'
+     *   resource.data: { id: 'user_abc' }
+     * @allow (delete) User with ID 'user_abc' can delete their signature.
+     *   auth.uid: 'user_abc'
+     *   resource.data: { id: 'user_abc' }
+     * @deny (create) User with ID 'user_abc' cannot create a signature for another user.
+     *   auth.uid: 'user_abc'
+     *   request.resource.data: { id: 'user_xyz' }
+     * @deny (get) User with ID 'user_abc' cannot read another user's signature.
+     *   auth.uid: 'user_abc'
+     * @deny (update) User with ID 'user_abc' cannot update another user's signature.
+     *   auth.uid: 'user_abc'
+     *   resource.data: { id: 'user_xyz' }
+     * @deny (delete) User with ID 'user_abc' cannot delete another user's signature.
+     *   auth.uid: 'user_abc'
+     *   resource.data: { id: 'user_xyz' }
+     * @principle Enforces document ownership for signature data.
      */
     match /signatures/{signatureId} {
-      allow get: if isSignedIn();
+      function isOwner(signatureId) {
+        return request.auth.uid == signatureId;
+      }
+
+      function isExistingOwner(signatureId) {
+        return isOwner(signatureId) && resource != null;
+      }
+
+      allow get: if isOwner(signatureId);
       allow list: if false;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow create: if isOwner(signatureId) && request.resource.data.id == signatureId;
+      allow update: if isExistingOwner(signatureId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(signatureId);
     }
   }
 }

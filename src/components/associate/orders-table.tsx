@@ -18,12 +18,40 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { format } from 'date-fns';
+import { Skeleton } from "@/components/ui/skeleton";
 
-export function OrdersTable({ orders }: { orders: Order[] }) {
+
+export function OrdersTable({ orders, isLoading }: { orders: Order[], isLoading?: boolean }) {
   const formatDate = (dateString?: string) => {
     if (!dateString) return "N/A";
-    return format(new Date(dateString), "MMM d, yyyy 'at' h:mm a");
+    try {
+        return format(new Date(dateString), "MMM d, yyyy 'at' h:mm a");
+    } catch (error) {
+        return "Invalid Date";
+    }
   }
+
+  const formatShortDate = (dateString?: string) => {
+      if (!dateString) return "N/A";
+      try {
+          return format(new Date(dateString), "MMM d, yyyy");
+      } catch (error) {
+          return "Invalid Date";
+      }
+  }
+
+  const TableSkeleton = () => (
+    [...Array(5)].map((_, i) => (
+      <TableRow key={`skeleton-${i}`}>
+        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+        <TableCell><Skeleton className="h-6 w-28 rounded-full" /></TableCell>
+        <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+        <TableCell className="text-right"><Skeleton className="h-10 w-24 ml-auto" /></TableCell>
+      </TableRow>
+    ))
+  );
 
   return (
     <div className="rounded-md border">
@@ -39,7 +67,7 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {orders.length > 0 ? (
+        {isLoading ? <TableSkeleton /> : orders.length > 0 ? (
           orders.map((order) => (
             <TableRow key={order.id}>
               <TableCell className="font-medium">{order.orderNumber}</TableCell>
@@ -54,7 +82,7 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
                 <TooltipProvider>
                     <Tooltip>
                         <TooltipTrigger>
-                            <span className="cursor-default">{format(new Date(order.createdAt), "MMM d, yyyy")}</span>
+                            <span className="cursor-default">{formatShortDate(order.createdAt)}</span>
                         </TooltipTrigger>
                         <TooltipContent>
                             <p>{formatDate(order.createdAt)}</p>

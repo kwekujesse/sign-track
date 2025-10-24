@@ -1,60 +1,82 @@
-// This file acts as a simple in-memory database.
-// In a real application, you would replace this with a proper database like Firestore.
-// The data is not persistent and will be reset on server restarts.
+'use server';
 
-import { type Order } from "@/lib/types";
+import {
+  collection,
+  doc,
+  addDoc,
+  getDoc,
+  getDocs,
+  updateDoc,
+  query,
+  where,
+  orderBy,
+  Timestamp,
+} from 'firebase/firestore';
+import { getSdks } from '@/firebase';
+import { type Order } from '@/lib/types';
 
-let orders: Order[] = [
-  {
-    id: "1",
-    orderNumber: "ORD-001",
-    customerName: "John Doe",
-    binNumber: "A1",
-    status: "Awaiting Pickup",
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "2",
-    orderNumber: "ORD-002",
-    customerName: "Jane Smith",
-    binNumber: "B3",
-    status: "Awaiting Pickup",
-    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "3",
-    orderNumber: "ORD-003",
-    customerName: "Peter Jones",
-    binNumber: "C2",
-    status: "Picked Up",
-    createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    pickedUpAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
-    signature: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", // Placeholder signature
-  },
-  {
-    id: "4",
-    orderNumber: "ORD-004",
-    customerName: "John Appleseed",
-    binNumber: "A5",
-    status: "Awaiting Pickup",
-    createdAt: new Date().toISOString(),
-  },
-];
+// This function is for server-side rendering and server actions.
+// It initializes a server-side admin instance of Firebase.
+function getDb() {
+  const { firestore } = getSdks();
+  return firestore;
+}
 
 export const getOrders = async (): Promise<Order[]> => {
-  return orders.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const db = getDb();
+  const ordersCol = collection(db, 'orders');
+  const q = query(ordersCol, orderBy('createdAt', 'desc'));
+  const orderSnapshot = await getDocs(q);
+  const orderList = orderSnapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      ...data,
+      createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
+      pickedUpAt: data.pickedUpAt ? (data.pickedUpAt as Timestamp).toDate().toISOString() : undefined,
+    } as Order;
+  });
+  return orderList;
 };
 
 export const getOrderById = async (id: string): Promise<Order | undefined> => {
-  return orders.find((order) => order.id === id);
+  if (!id) return undefined;
+  const db = getDb();
+  const orderRef = doc(db, 'orders', id);
+  const orderSnap = await getDoc(orderRef);
+  if (orderSnap.exists()) {
+    const data = orderSnap.data();
+    return {
+      id: orderSnap.id,
+      ...data,
+      createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
+      pickedUpAt: data.pickedUpAt ? (data.pickedUpAt as Timestamp).toDate().toISOString() : undefined,
+    } as Order;
+  }
+  return undefined;
 };
 
 export const findOrdersByName = async (name: string): Promise<Order[]> => {
   if (!name) return [];
-  return orders.filter(
-    (order) =>
-      order.customerName.toLowerCase().includes(name.toLowerCase())
-  );
+  const db = getDb();
+  const ordersCol = collection(db, 'orders');
+  // Firestore doesn't support case-insensitive search natively.
+  // A common workaround is to store a lowercased version of the field.
+  // For this simple case, we'll fetch and filter, but this is not efficient for large datasets.
+  const q = query(ordersCol, where('customerName', '>=', name), where('customerName', '<=', name + '\uf8ff'));
+  
+  const orderSnapshot = await getDocs(q);
+   const orderList = orderSnapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      id: doc.id,
+      ...data,
+      createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
+      pickedUpAt: data.pickedUpAt ? (data.pickedUpAt as Timestamp).toDate().toISOString() : undefined,
+    } as Order;
+  });
+
+  return orderList.filter(order => order.customerName.toLowerCase().includes(name.toLowerCase()));
 };
 
 export const addOrder = async (data: {
@@ -62,29 +84,45 @@ export const addOrder = async (data: {
   customerName: string;
   binNumber: string;
 }): Promise<Order> => {
-  const newOrder: Order = {
-    id: (orders.length + 1).toString(),
+  const db = getDb();
+  const newOrderData = {
     ...data,
-    status: "Awaiting Pickup",
-    createdAt: new Date().toISOString(),
+    status: 'Awaiting Pickup',
+    createdAt: Timestamp.now(),
   };
-  orders.push(newOrder);
-  return newOrder;
+  const docRef = await addDoc(collection(db, 'orders'), newOrderData);
+
+  return {
+    id: docRef.id,
+    ...newOrderData,
+    createdAt: newOrderData.createdAt.toDate().toISOString(),
+  };
 };
 
 export const addSignatureToOrder = async (
   id: string,
   signature: string
 ): Promise<Order | undefined> => {
-  const orderIndex = orders.findIndex((order) => order.id === id);
-  if (orderIndex !== -1) {
-    orders[orderIndex] = {
-      ...orders[orderIndex],
-      status: "Picked Up",
+  const db = getDb();
+  const orderRef = doc(db, 'orders', id);
+  const orderSnap = await getDoc(orderRef);
+
+  if (orderSnap.exists()) {
+    await updateDoc(orderRef, {
+      status: 'Picked Up',
       signature: signature,
-      pickedUpAt: new Date().toISOString(),
-    };
-    return orders[orderIndex];
+      pickedUpAt: Timestamp.now(),
+    });
+    const updatedDoc = await getDoc(orderRef);
+    const data = updatedDoc.data();
+    if (!data) return undefined;
+    
+    return {
+        id: updatedDoc.id,
+        ...data,
+        createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
+        pickedUpAt: (data.pickedUpAt as Timestamp).toDate().toISOString(),
+    } as Order;
   }
   return undefined;
 };
