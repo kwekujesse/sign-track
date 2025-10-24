@@ -64,7 +64,10 @@ export function OrderEntryForm({
     setIsSubmitting(true);
     const newOrderData = {
       ...data,
-      customerName: `${data.firstName} ${data.lastName}`, // Combined for easy search/display
+      customerName: `${data.firstName} ${data.lastName}`,
+      firstName_lowercase: data.firstName.toLowerCase(),
+      lastName_lowercase: data.lastName.toLowerCase(),
+      customerName_lowercase: `${data.firstName} ${data.lastName}`.toLowerCase(),
       status: "Awaiting Pickup",
       createdAt: Timestamp.now(),
     };
@@ -160,7 +163,7 @@ export function OrderEntryForm({
                 <div className="relative">
                   <Archive className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input placeholder="A12" className="pl-9" {...field} />
-                </div>
+-                </div>
               </FormControl>
               <FormMessage />
             </FormItem>

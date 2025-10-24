@@ -60,22 +60,20 @@ export const findOrdersByName = async (name: string): Promise<Order[]> => {
     const ordersCol = collection(db, 'orders');
 
     const nameLower = name.toLowerCase();
-
-    // Firestore's string search capabilities are case-sensitive and don't support partial matching easily with security.
-    // A common strategy is to query for a range and then filter client-side.
+    
+    // Query on the lowercase fields for case-insensitive search
     const q = query(ordersCol, 
-      where('customerName', '>=', name),
-      where('customerName', '<=', name + '\uf8ff')
+      or(
+        where('firstName_lowercase', '==', nameLower),
+        where('lastName_lowercase', '==', nameLower),
+        where('customerName_lowercase', '==', nameLower)
+      )
     );
 
     const orderSnapshot = await getDocs(q);
     const orderList = orderSnapshot.docs.map(toOrder);
     
-    // As Firestore '!=' and 'not-in' queries have limitations and case-insensitivity is complex server-side,
-    // we do a final, more precise filter on the client.
-    return orderList.filter(order => 
-      order.customerName.toLowerCase().includes(nameLower)
-    );
+    return orderList;
 };
 
 export const addOrder = async (data: {
@@ -88,6 +86,9 @@ export const addOrder = async (data: {
   const newOrderData = {
     ...data,
     customerName: `${data.firstName} ${data.lastName}`,
+    firstName_lowercase: data.firstName.toLowerCase(),
+    lastName_lowercase: data.lastName.toLowerCase(),
+    customerName_lowercase: `${data.firstName} ${data.lastName}`.toLowerCase(),
     status: 'Awaiting Pickup',
     createdAt: Timestamp.now(),
   };
@@ -122,4 +123,3 @@ export const addSignatureToOrder = async (
   }
   return undefined;
 };
-
