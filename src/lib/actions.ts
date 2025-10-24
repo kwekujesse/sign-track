@@ -1,3 +1,4 @@
+
 "use server";
 
 import { z } from "zod";
@@ -51,6 +52,7 @@ export async function searchOrders(prevState: any, formData: FormData) {
 }
 
 export async function addSignature(orderId: string, signature: string) {
+    "use server"
     if (!orderId || !signature) {
         throw new Error("Order ID and signature are required.");
     }
@@ -66,6 +68,4 @@ export async function addSignature(orderId: string, signature: string) {
         console.error("Failed to add signature:", error);
         throw new Error("Failed to save signature.");
     }
-    
-    redirect('/');
 }

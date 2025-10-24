@@ -1,15 +1,18 @@
+
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useTransition } from "react";
 import { SignaturePad, type SignaturePadRef } from "./signature-pad";
 import { Button } from "./ui/button";
 import { addSignature } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, CheckCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export function SignatureCapture({ orderId }: { orderId: string }) {
   const signaturePadRef = useRef<SignaturePadRef>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
   const { toast } = useToast();
 
   const handleClear = () => {
@@ -26,27 +29,26 @@ export function SignatureCapture({ orderId }: { orderId: string }) {
       return;
     }
 
-    setIsSubmitting(true);
     const signatureDataUrl = signaturePadRef.current?.toDataURL();
 
     if (signatureDataUrl) {
-      try {
-        await addSignature(orderId, signatureDataUrl);
-        toast({
-          title: "Pickup Confirmed!",
-          description: "Your order has been marked as picked up.",
-          className: "bg-accent text-accent-foreground"
-        });
-      } catch (error) {
-        toast({
-          title: "Submission Failed",
-          description: "Could not save signature. Please try again.",
-          variant: "destructive",
-        });
-        setIsSubmitting(false);
-      }
-    } else {
-      setIsSubmitting(false);
+       startTransition(async () => {
+        try {
+          await addSignature(orderId, signatureDataUrl);
+          toast({
+            title: "Pickup Confirmed!",
+            description: "Your order has been marked as picked up.",
+            className: "bg-accent text-accent-foreground"
+          });
+          router.push('/');
+        } catch (error) {
+          toast({
+            title: "Submission Failed",
+            description: "Could not save signature. Please try again.",
+            variant: "destructive",
+          });
+        }
+      });
     }
   };
 
@@ -62,10 +64,10 @@ export function SignatureCapture({ orderId }: { orderId: string }) {
       <div className="flex flex-col sm:flex-row gap-2">
         <Button
           onClick={handleSubmit}
-          disabled={isSubmitting}
+          disabled={isPending}
           className="w-full sm:w-auto"
         >
-          {isSubmitting ? (
+          {isPending ? (
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           ) : (
             <CheckCircle className="mr-2 h-4 w-4" />
@@ -75,7 +77,7 @@ export function SignatureCapture({ orderId }: { orderId: string }) {
         <Button
           variant="outline"
           onClick={handleClear}
-          disabled={isSubmitting}
+          disabled={isPending}
           className="w-full sm:w-auto"
         >
           Clear
