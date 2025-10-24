@@ -25,18 +25,18 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
     }
     setError('');
     try {
-      // The simple password check was replaced by Firebase Auth.
-      // We will now use a fixed email and the provided password.
       if (password === 'admin') {
+        // The associate user was created with email 'associate@signtrack.com' and password 'password'
+        // We sign in with those credentials if the user enters 'admin'
         await signInWithEmailAndPassword(auth, email, 'password');
       } else {
         setError('Incorrect password. Please try again.');
         setPassword('');
       }
     } catch (e: any) {
-      // This might happen if the associate user doesn't exist in Firebase Auth
-      if (e.code === 'auth/user-not-found' || e.code === 'auth/invalid-credential') {
-         setError('Authentication failed. Please contact an administrator.');
+      console.error(e);
+      if (e.code === 'auth/invalid-credential' || e.code === 'auth/user-not-found') {
+         setError('Authentication failed. Please check the credentials or contact an administrator.');
       } else {
         setError('An unexpected error occurred. Please try again.');
       }
