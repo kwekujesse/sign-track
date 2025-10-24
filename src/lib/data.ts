@@ -1,3 +1,4 @@
+
 'use server';
 
 import {
@@ -11,14 +12,15 @@ import {
   where,
   orderBy,
   Timestamp,
+  getFirestore,
 } from 'firebase/firestore';
-import { getSdks } from '@/firebase';
+import { initializeFirebase } from '@/firebase/server';
 import { type Order } from '@/lib/types';
 
 // This function is for server-side rendering and server actions.
 // It initializes a server-side admin instance of Firebase.
 function getDb() {
-  const { firestore } = getSdks();
+  const { firestore } = initializeFirebase();
   return firestore;
 }
 
