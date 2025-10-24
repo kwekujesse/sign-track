@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -23,15 +24,19 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FilePlus2, FileText, Package, CheckCircle } from "lucide-react";
 import { OrderEntryForm } from "./order-entry-form";
-import { useCollection, useFirebase, useUser } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
+import { useCollection, useFirebase, useUser, useMemoFirebase } from "@/firebase";
+import { collection, query, orderBy, getFirestore, where } from "firebase/firestore";
 
 export function DashboardClient({ orders: initialOrders }: { orders: Order[] }) {
   const { firestore } = useFirebase();
   const { user } = useUser();
   const [isNewOrderDialogOpen, setIsNewOrderDialogOpen] = useState(false);
   
-  const ordersQuery = firestore && user ? query(collection(firestore, "orders"), orderBy("createdAt", "desc")) : null;
+  const ordersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, "orders"), orderBy("createdAt", "desc"));
+  }, [firestore]);
+  
   const { data: orders, isLoading } = useCollection<Order>(ordersQuery);
 
   const [awaitingPickupOrders, setAwaitingPickupOrders] = useState<Order[]>([]);
@@ -39,7 +44,7 @@ export function DashboardClient({ orders: initialOrders }: { orders: Order[] }) 
   const [pickedUpToday, setPickedUpToday] = useState<Order[]>([]);
 
   useEffect(() => {
-    const allOrders = orders || initialOrders;
+    const allOrders = orders; // We will now only rely on the real-time data
     if (allOrders) {
       const awaiting = allOrders.filter(
         (order) => order.status === "Awaiting Pickup"
@@ -54,6 +59,16 @@ export function DashboardClient({ orders: initialOrders }: { orders: Order[] }) 
       setAwaitingPickupOrders(awaiting);
       setPickedUpOrders(pickedUp);
       setPickedUpToday(todayPickups);
+    } else {
+        // Handle case where orders is null (e.g. on initial load or error)
+        const awaiting = initialOrders.filter((order) => order.status === "Awaiting Pickup");
+        const pickedUp = initialOrders.filter((order) => order.status === "Picked Up");
+        const today = new Date().toISOString().split('T')[0];
+        const todayPickups = pickedUp.filter(order => order.pickedUpAt?.startsWith(today));
+        
+        setAwaitingPickupOrders(awaiting);
+        setPickedUpOrders(pickedUp);
+        setPickedUpToday(todayPickups);
     }
   }, [orders, initialOrders]);
 

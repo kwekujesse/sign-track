@@ -4,7 +4,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { addOrder, findOrdersByName, getOrderById, addSignatureToOrder as dbAddSignature } from "@/lib/data";
+import { addOrder, findOrdersByName, addSignatureToOrder as dbAddSignature } from "@/lib/data";
 
 const orderSchema = z.object({
   orderNumber: z.string().min(1, "Order number is required"),
@@ -28,7 +28,8 @@ export async function createOrder(prevState: any, formData: FormData) {
   
   try {
     await addOrder(validatedFields.data);
-    revalidatePath("/associate");
+    // Revalidation is handled by the real-time listener on the dashboard
+    // revalidatePath("/associate"); 
     return { message: "Order created successfully." };
   } catch (e) {
     return { message: "Failed to create order." };
@@ -37,8 +38,8 @@ export async function createOrder(prevState: any, formData: FormData) {
 
 export async function searchOrders(prevState: any, formData: FormData) {
   const name = formData.get("customerName") as string;
-  if (!name) {
-    return { orders: [], message: "Please enter a name to search." };
+  if (!name || name.length < 2) {
+    return { orders: [], message: "Please enter at least 2 characters." };
   }
   try {
     const orders = await findOrdersByName(name);
@@ -60,13 +61,11 @@ export async function addSignature(orderId: string, signature: string) {
     }
 
     try {
-        const updatedOrder = await dbAddSignature(orderId, signature);
-        if (!updatedOrder) {
-            throw new Error("Order not found.");
-        }
-        revalidatePath(`/order/${orderId}`);
-        revalidatePath('/associate');
-        revalidatePath('/');
+        await dbAddSignature(orderId, signature);
+        // Revalidation is handled by real-time listeners
+        // revalidatePath(`/order/${orderId}`);
+        // revalidatePath('/associate');
+        // revalidatePath('/');
     } catch (error) {
         console.error("Failed to add signature:", error);
         throw new Error("Failed to save signature.");
