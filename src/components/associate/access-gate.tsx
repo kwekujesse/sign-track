@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Lock, Users, Mail } from 'lucide-react';
 import { useUser, useFirebase } from '@/firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 
 export function AccessGate({ children }: { children: React.ReactNode }) {
@@ -27,6 +27,10 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
     }
     setError('');
     try {
+      // If there's a user and they are anonymous, sign them out first.
+      if (auth.currentUser && auth.currentUser.isAnonymous) {
+        await signOut(auth);
+      }
       await signInWithEmailAndPassword(auth, email, password);
     } catch (e: any) {
       console.error(e);
