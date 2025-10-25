@@ -65,10 +65,16 @@ export function useCollection<T = any>(
   const memoizedQuery = useMemoFirebase(() => memoizedTargetRefOrQuery, [memoizedTargetRefOrQuery]);
 
   useEffect(() => {
-    if (!memoizedQuery) {
-      setData(null);
+    // If the query is explicitly null (e.g., user not logged in), don't fetch data.
+    if (memoizedQuery === null) {
+      setData([]); // Set data to empty array to signify "no data" vs "loading"
       setIsLoading(false);
       setError(null);
+      return;
+    }
+    // If the query is undefined, it might still be initializing.
+    if (memoizedQuery === undefined) {
+      setIsLoading(true);
       return;
     }
 

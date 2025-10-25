@@ -1,12 +1,11 @@
-import { getOrders } from "@/lib/data";
 import { DashboardClient } from "@/components/associate/dashboard-client";
 
-export default async function AssociateDashboardPage() {
-  const orders = await getOrders();
-
+export default function AssociateDashboardPage() {
+  // Orders will be fetched on the client side by DashboardClient
+  // after the user has authenticated.
   return (
     <div className="container mx-auto py-8">
-      <DashboardClient orders={orders} />
+      <DashboardClient />
     </div>
   );
 }

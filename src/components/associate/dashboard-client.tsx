@@ -27,15 +27,15 @@ import { OrderEntryForm } from "./order-entry-form";
 import { useCollection, useFirebase, useUser, useMemoFirebase } from "@/firebase";
 import { collection, query, orderBy, getFirestore, where, Timestamp } from "firebase/firestore";
 
-export function DashboardClient({ orders: initialOrders }: { orders: Order[] }) {
+export function DashboardClient() {
   const { firestore } = useFirebase();
   const { user } = useUser();
   const [isNewOrderDialogOpen, setIsNewOrderDialogOpen] = useState(false);
   
   const ordersQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    if (!firestore || !user || user.isAnonymous) return null; // Don't query if not logged in as associate
     return query(collection(firestore, "orders"), orderBy("createdAt", "desc"));
-  }, [firestore]);
+  }, [firestore, user]);
   
   const { data: orders, isLoading } = useCollection<Order>(ordersQuery);
 
@@ -44,7 +44,7 @@ export function DashboardClient({ orders: initialOrders }: { orders: Order[] }) 
   const [pickedUpToday, setPickedUpToday] = useState<Order[]>([]);
 
   useEffect(() => {
-    const allOrders = orders || initialOrders; 
+    const allOrders = orders || [];
     if (allOrders) {
       const awaiting = allOrders.filter(
         (order) => order.status === "Awaiting Pickup"
@@ -80,7 +80,7 @@ export function DashboardClient({ orders: initialOrders }: { orders: Order[] }) 
       setPickedUpOrders(pickedUp);
       setPickedUpToday(todayPickups);
     }
-  }, [orders, initialOrders]);
+  }, [orders]);
 
 
   return (
@@ -108,7 +108,7 @@ export function DashboardClient({ orders: initialOrders }: { orders: Order[] }) 
               <OrderEntryForm setDialogOpen={setIsNewOrderDialogOpen} />
             </DialogContent>
           </Dialog>
-          <ReportDialog orders={pickedUpToday} />
+           <ReportDialog orders={pickedUpToday} />
         </div>
       </div>
 
