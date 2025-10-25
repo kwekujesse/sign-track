@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 
 // This is a "soft" gate. It does not provide real security,
 // but prevents casual access. The password is hardcoded here.
-const ASSOCIATE_PASSWORD = "Staples1147";
+const ASSOCIATE_PASSWORD = "admin";
 
 export function AccessGate({ children }: { children: React.ReactNode }) {
   const [isUnlocked, setIsUnlocked] = useState(false);
