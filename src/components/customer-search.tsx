@@ -14,15 +14,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { SubmitButton } from "./submit-button";
-import { useFirebase } from "@/firebase";
-import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
 
 const searchSchema = z.object({
   customerName: z.string().min(2, "Please enter at least 2 characters"),
 });
 
 export function CustomerSearch() {
-  const { auth } = useFirebase();
   const [state, formAction] = useActionState(searchOrders, { orders: [], message: "" });
   
   const form = useForm<z.infer<typeof searchSchema>>({
@@ -31,13 +28,6 @@ export function CustomerSearch() {
       customerName: "",
     },
   });
-
-  const handleSearch = async (formData: FormData) => {
-    if (auth && !auth.currentUser) {
-      await initiateAnonymousSignIn(auth);
-    }
-    formAction(formData);
-  };
 
   return (
     <div className="w-full max-w-2xl">
@@ -50,7 +40,7 @@ export function CustomerSearch() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form action={handleSearch} className="space-y-6">
+            <form action={formAction} className="space-y-6">
               <FormField
                 control={form.control}
                 name="customerName"

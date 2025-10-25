@@ -1,12 +1,25 @@
 'use client';
 
-import React, { useMemo, type ReactNode } from 'react';
-import { FirebaseProvider } from '@/firebase/provider';
+import React, { useMemo, type ReactNode, useEffect } from 'react';
+import { FirebaseProvider, useAuth } from '@/firebase/provider';
 import { initializeFirebase } from '@/firebase';
+import { initiateAnonymousSignIn } from './non-blocking-login';
 
 interface FirebaseClientProviderProps {
   children: ReactNode;
 }
+
+// A wrapper component to initiate anonymous sign-in
+function AnonymousAuthWrapper({ children }: { children: ReactNode }) {
+  const auth = useAuth(); // Assuming useAuth can be used here safely
+  useEffect(() => {
+    if (auth && !auth.currentUser) {
+      initiateAnonymousSignIn(auth);
+    }
+  }, [auth]);
+  return <>{children}</>;
+}
+
 
 export function FirebaseClientProvider({ children }: FirebaseClientProviderProps) {
   const firebaseServices = useMemo(() => {
@@ -20,7 +33,9 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
       auth={firebaseServices.auth}
       firestore={firebaseServices.firestore}
     >
-      {children}
+      <AnonymousAuthWrapper>
+        {children}
+      </AnonymousAuthWrapper>
     </FirebaseProvider>
   );
 }
