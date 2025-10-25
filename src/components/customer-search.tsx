@@ -1,10 +1,10 @@
 
 "use client";
 
-import { useActionState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Search } from "lucide-react";
-import { searchOrders } from "@/lib/actions";
+import { findOrdersByName } from "@/lib/data";
 import { type Order } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,20 +14,57 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { SubmitButton } from "./submit-button";
+import { useFirebase } from "@/firebase";
+import { Loader2 } from "lucide-react";
 
 const searchSchema = z.object({
   customerName: z.string().min(2, "Please enter at least 2 characters"),
 });
 
+type SearchFormValues = z.infer<typeof searchSchema>;
+
 export function CustomerSearch() {
-  const [state, formAction] = useActionState(searchOrders, { orders: [], message: "" });
-  
-  const form = useForm<z.infer<typeof searchSchema>>({
+  const { isUserLoading } = useFirebase();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [message, setMessage] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+
+  const form = useForm<SearchFormValues>({
     resolver: zodResolver(searchSchema),
     defaultValues: {
       customerName: "",
     },
   });
+
+  const handleSearch = async (data: SearchFormValues) => {
+    setIsSearching(true);
+    setMessage("");
+    setOrders([]);
+
+    try {
+      const foundOrders = await findOrdersByName(data.customerName);
+      const pendingOrders = foundOrders.filter(order => order.status === "Awaiting Pickup");
+
+      if (pendingOrders.length === 0) {
+        setMessage("No pending orders found for this name. Please see an associate for help.");
+      } else {
+        setOrders(pendingOrders);
+      }
+    } catch (error) {
+      console.error("Search error:", error);
+      setMessage("An error occurred while searching. Please try again.");
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  if (isUserLoading) {
+    return (
+        <div className="flex items-center justify-center min-h-[200px]">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+    )
+  }
 
   return (
     <div className="w-full max-w-2xl">
@@ -40,7 +77,7 @@ export function CustomerSearch() {
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form action={formAction} className="space-y-6">
+            <form onSubmit={form.handleSubmit(handleSearch)} className="space-y-6">
               <FormField
                 control={form.control}
                 name="customerName"
@@ -61,21 +98,25 @@ export function CustomerSearch() {
                   </FormItem>
                 )}
               />
-              <SubmitButton className="w-full h-12 text-lg">
-                <Search className="mr-2 h-5 w-5" />
+              <Button type="submit" disabled={isSearching} className="w-full h-12 text-lg">
+                {isSearching ? (
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                ) : (
+                    <Search className="mr-2 h-5 w-5" />
+                )}
                 Search
-              </SubmitButton>
+              </Button>
             </form>
           </Form>
         </CardContent>
       </Card>
 
-      {state?.message && <p className="mt-4 text-center text-muted-foreground">{state.message}</p>}
+      {message && <p className="mt-4 text-center text-muted-foreground">{message}</p>}
 
-      {state?.orders && state.orders.length > 0 && (
+      {orders.length > 0 && (
         <div className="mt-8 space-y-4">
           <h2 className="text-xl font-semibold text-center">Your Pending Orders</h2>
-          {state.orders.map((order) => (
+          {orders.map((order) => (
             <Card key={order.id} className="overflow-hidden">
                 <CardContent className="p-4 flex items-center justify-between">
                     <div>

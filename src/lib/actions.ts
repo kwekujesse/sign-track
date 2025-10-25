@@ -4,7 +4,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { addOrder, findOrdersByName, addSignatureToOrder as dbAddSignature } from "@/lib/data";
+import { addOrder, addSignatureToOrder as dbAddSignature } from "@/lib/data";
 
 const orderSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -36,24 +36,6 @@ export async function createOrder(prevState: any, formData: FormData) {
     // This is a server action, so we can't use the client-side error emitter.
     // We return the error message to be displayed in the UI.
     return { message: e.message || "Failed to create order." };
-  }
-}
-
-export async function searchOrders(prevState: any, formData: FormData) {
-  const name = formData.get("customerName") as string;
-  if (!name || name.length < 2) {
-    return { orders: [], message: "Please enter at least 2 characters." };
-  }
-  try {
-    const orders = await findOrdersByName(name.toLowerCase());
-    const pendingOrders = orders.filter(order => order.status === "Awaiting Pickup");
-
-    if (pendingOrders.length === 0) {
-      return { orders: [], message: "No pending orders found for this name. Please see an associate for help" };
-    }
-    return { orders: pendingOrders, message: "" };
-  } catch (e) {
-    return { orders: [], message: "An error occurred while searching." };
   }
 }
 
