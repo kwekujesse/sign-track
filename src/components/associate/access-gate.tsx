@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -19,18 +19,9 @@ export function AccessGate({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState('');
   const { toast } = useToast();
 
-  useEffect(() => {
-    // Check session storage to see if the user has already entered the password
-    const unlocked = sessionStorage.getItem('associate-unlocked');
-    if (unlocked === 'true') {
-      setIsUnlocked(true);
-    }
-  }, []);
-
   const handleLogin = () => {
     setError('');
     if (password === ASSOCIATE_PASSWORD) {
-      sessionStorage.setItem('associate-unlocked', 'true');
       setIsUnlocked(true);
       toast({
         title: "Access Granted",
