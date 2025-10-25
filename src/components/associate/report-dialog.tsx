@@ -2,7 +2,6 @@
 "use client";
 
 import React, { useRef } from "react";
-import { useReactToPrint } from "react-to-print";
 import { type Order } from "@/lib/types";
 import {
   Dialog,
@@ -14,8 +13,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Printer, FileText } from "lucide-react";
+import { FileText, FileDown } from "lucide-react";
 import { ReportView } from "./report-view";
+import { useState } from "react";
+import { generatePdfFromElement } from "@/lib/pdf";
 
 interface ReportDialogProps {
   orders: Order[];
@@ -23,11 +24,17 @@ interface ReportDialogProps {
 
 export function ReportDialog({ orders }: ReportDialogProps) {
   const componentRef = useRef<HTMLDivElement>(null);
-  
-  const handlePrint = useReactToPrint({
-    content: () => componentRef.current,
-    documentTitle: `EOD-Pickup-Report-${new Date().toLocaleDateString()}`,
-  });
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    if (!componentRef.current) return;
+    try {
+      setDownloading(true);
+      await generatePdfFromElement(componentRef.current, `EOD-Pickup-Report-${new Date().toLocaleDateString()}.pdf`);
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   return (
     <Dialog>
@@ -50,9 +57,9 @@ export function ReportDialog({ orders }: ReportDialogProps) {
         </div>
 
         <DialogFooter>
-          <Button onClick={handlePrint} disabled={orders.length === 0}>
-            <Printer className="mr-2 h-4 w-4" />
-            Print Report
+          <Button onClick={handleDownload} variant="outline" disabled={orders.length === 0 || downloading}>
+            <FileDown className="mr-2 h-4 w-4" />
+            {downloading ? "Preparing PDF..." : "Download PDF"}
           </Button>
         </DialogFooter>
       </DialogContent>
