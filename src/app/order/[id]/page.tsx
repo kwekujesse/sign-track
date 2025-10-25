@@ -1,3 +1,4 @@
+
 import { getOrderById } from "@/lib/data";
 import { notFound } from "next/navigation";
 import { MainNav } from "@/components/main-nav";
@@ -16,7 +17,7 @@ export default async function OrderPage({ params }: { params: { id: string } }) 
   return (
     <div className="flex min-h-screen w-full flex-col">
       <MainNav />
-      <main className="flex-1 bg-muted/40">
+      <main className="flex-1 bg-muted/40 p-4 sm:p-6 md:p-0">
         <div className="container mx-auto max-w-3xl py-8 md:py-12">
           {order.status === "Picked Up" ? (
              <Alert variant="default" className="bg-accent text-accent-foreground">
@@ -29,13 +30,13 @@ export default async function OrderPage({ params }: { params: { id: string } }) 
           ) : (
             <Card>
               <CardHeader>
-                <CardTitle className="text-3xl font-bold">Complete Your Pickup</CardTitle>
+                <CardTitle className="text-2xl md:text-3xl font-bold">Complete Your Pickup</CardTitle>
                 <CardDescription>
                   Please confirm the order details and provide your signature below.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-lg border p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-lg border p-4 text-sm sm:text-base">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Customer Name</p>
                     <p className="font-semibold">{order.customerName}</p>

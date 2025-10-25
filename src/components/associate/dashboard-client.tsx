@@ -24,8 +24,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FilePlus2, FileText, Package, CheckCircle } from "lucide-react";
 import { OrderEntryForm } from "./order-entry-form";
-import { useCollection, useFirebase, useUser, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy, getFirestore, where, Timestamp } from "firebase/firestore";
+import { useCollection, useFirebase, useMemoFirebase } from "@/firebase";
+import { collection, query, orderBy, Timestamp } from "firebase/firestore";
 
 export function DashboardClient() {
   const { firestore } = useFirebase();
@@ -58,12 +58,10 @@ export function DashboardClient() {
       const todayPickups = pickedUp.filter(order => {
         if (!order.pickedUpAt) return false;
         
-        // Ensure pickedUpAt can be converted to a Date object
         const pickedUpAtDate = order.pickedUpAt instanceof Timestamp 
             ? order.pickedUpAt.toDate() 
             : new Date(order.pickedUpAt);
             
-        // Check if the conversion resulted in a valid date
         if (isNaN(pickedUpAtDate.getTime())) {
           console.warn("Invalid pickedUpAt value for order:", order.id, order.pickedUpAt);
           return false; 
@@ -89,15 +87,15 @@ export function DashboardClient() {
           <h1 className="text-3xl font-bold tracking-tight">Associate Dashboard</h1>
           <p className="text-muted-foreground">Manage and track all customer orders.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full md:w-auto">
           <Dialog open={isNewOrderDialogOpen} onOpenChange={setIsNewOrderDialogOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="w-full md:w-auto">
                 <FilePlus2 className="mr-2 h-4 w-4" />
                 New Order
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Add New Order</DialogTitle>
                 <DialogDescription>
@@ -112,7 +110,7 @@ export function DashboardClient() {
       </div>
 
       <Tabs defaultValue="awaiting">
-        <TabsList className="grid w-full grid-cols-2 md:w-[400px]">
+        <TabsList className="grid w-full grid-cols-2 md:w-auto md:inline-flex">
           <TabsTrigger value="awaiting">
             <Package className="mr-2 h-4 w-4"/>
             Awaiting Pickup ({awaitingPickupOrders.length})

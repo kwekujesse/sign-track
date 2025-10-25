@@ -187,15 +187,15 @@ export function OrderEntryForm({
                 <FormControl>
                   <div className="relative">
                     <Barcode className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input placeholder="Scan or type barcode..." className="pl-9 pr-9" {...field} />
+                    <Input placeholder="Scan or type barcode..." className="pl-9 pr-12" {...field} />
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
                       onClick={() => setIsScannerOpen(true)}
                     >
-                      <Camera className="h-4 w-4" />
+                      <Camera className="h-5 w-5" />
                       <span className="sr-only">Scan Barcode</span>
                     </Button>
                   </div>
@@ -204,7 +204,7 @@ export function OrderEntryForm({
               </FormItem>
             )}
           />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField
               control={form.control}
               name="firstName"

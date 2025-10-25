@@ -22,7 +22,7 @@ export function EditOrderDialog({
 }) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Order</DialogTitle>
           <DialogDescription>

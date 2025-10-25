@@ -32,12 +32,12 @@ export function ReportDialog({ orders }: ReportDialogProps) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline">
+        <Button variant="outline" className="w-full md:w-auto">
           <FileText className="mr-2 h-4 w-4" />
           Print EOD Report
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="max-w-4xl w-[90vw] rounded-md">
         <DialogHeader>
           <DialogTitle>End of Day Pickup Report</DialogTitle>
           <DialogDescription>

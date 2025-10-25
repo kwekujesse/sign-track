@@ -61,16 +61,16 @@ export function BarcodeScannerDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md w-[90vw] rounded-md">
         <DialogHeader>
           <DialogTitle>Scan Barcode</DialogTitle>
           <DialogDescription>
             Point your camera at the order barcode.
           </DialogDescription>
         </DialogHeader>
-        <div className="rounded-md overflow-hidden">
+        <div className="rounded-md overflow-hidden aspect-video">
           {hasCameraPermission === null ? (
-            <div className="h-48 flex items-center justify-center bg-muted">
+            <div className="h-full w-full flex items-center justify-center bg-muted">
                 <p>Requesting camera permission...</p>
             </div>
           ) : hasCameraPermission === true ? (
