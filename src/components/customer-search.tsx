@@ -41,6 +41,16 @@ export function CustomerSearch() {
     },
   });
 
+  const handleNewSearch = () => {
+    setOrders([]);
+    setMessage("");
+    setMode("search");
+    try { form.reset({ customerName: "" }); } catch {}
+    if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  };
+
   const handleSearch = async (data: SearchFormValues) => {
     // Blur any focused input to reduce on-screen keyboard interference
     if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
@@ -208,7 +218,10 @@ export function CustomerSearch() {
 
       {mode === "results" && orders.length > 0 && (
         <div className="mt-4 space-y-4">
-          <h2 className="text-xl font-semibold text-center">Your Pending Orders</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-center flex-1">Your Pending Orders</h2>
+            <Button variant="outline" onClick={handleNewSearch} className="ml-4">New Search</Button>
+          </div>
           {orders.map((order) => (
             <Card key={order.id} className="overflow-hidden">
               <CardContent className="p-4 flex items-center justify-between">
@@ -234,6 +247,7 @@ export function CustomerSearch() {
               <Clock className="h-4 w-4" />
               <span>Refreshing in {countdown}s...</span>
             </div>
+            <Button onClick={handleNewSearch} variant="outline" className="mt-2">New Search</Button>
           </CardContent>
         </Card>
       )}
