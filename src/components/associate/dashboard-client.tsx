@@ -29,13 +29,12 @@ import { collection, query, orderBy, getFirestore, where, Timestamp } from "fire
 
 export function DashboardClient() {
   const { firestore } = useFirebase();
-  const { user } = useUser();
   const [isNewOrderDialogOpen, setIsNewOrderDialogOpen] = useState(false);
   
   const ordersQuery = useMemoFirebase(() => {
-    if (!firestore || !user || user.isAnonymous) return null; // Don't query if not logged in as associate
+    if (!firestore) return null;
     return query(collection(firestore, "orders"), orderBy("createdAt", "desc"));
-  }, [firestore, user]);
+  }, [firestore]);
   
   const { data: orders, isLoading } = useCollection<Order>(ordersQuery);
 
